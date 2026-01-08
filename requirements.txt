@@ -1,0 +1,53 @@
+# -------------------------------
+# FastAPI y servidor
+# -------------------------------
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# -------------------------------
+# Base de datos
+# -------------------------------
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+
+# -------------------------------
+# Seguridad / JWT / Password
+# -------------------------------
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
+python-jose[cryptography]==3.3.0
+cryptography==41.0.7
+
+# -------------------------------
+# Variables de entorno (.env)
+# -------------------------------
+python-dotenv==1.0.0
+
+# -------------------------------
+# Upload de archivos
+# -------------------------------
+python-multipart==0.0.6
+
+# -------------------------------
+# Validación de datos
+# -------------------------------
+pydantic==2.5.0
+email-validator==2.1.0
+
+# -------------------------------
+# Email (reset password)
+# -------------------------------
+aiosmtplib==2.0.2
+
+# -------------------------------
+# Inteligencia Artificial (IA)
+# -------------------------------
+torch==2.2.0 --index-url https://download.pytorch.org/whl/cpu
+transformers==4.36.2
+sentencepiece==0.1.99
+accelerate==0.25.0
+faster-whisper==0.10.0
+gTTS==2.5.1
+numpy==1.26.2
+
+
