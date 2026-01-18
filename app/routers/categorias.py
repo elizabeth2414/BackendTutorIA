@@ -5,14 +5,14 @@ from app.config import get_db
 from app.servicios.seguridad import requiere_docente
 from app.modelos import ContenidoLectura, CategoriaLectura, Curso, Docente, UsuarioRol
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import Optional
 
 router = APIRouter(prefix="/categorias", tags=["categorias"])
 
 
 # ============================================================
-# ESQUEMAS Pydantic
+# ESQUEMAS Pydantic (VALIDACIÓN: 7-10 AÑOS)
 # ============================================================
 
 class CategoriaBase(BaseModel):
@@ -23,19 +23,43 @@ class CategoriaBase(BaseModel):
     color: str = "#3498db"
     icono: Optional[str] = None
 
+    @validator('edad_minima')
+    def validar_edad_minima(cls, v):
+        if v < 7 or v > 10:
+            raise ValueError('La edad mínima debe estar entre 7 y 10 años')
+        return v
+
+    @validator('edad_maxima')
+    def validar_edad_maxima(cls, v):
+        if v < 7 or v > 10:
+            raise ValueError('La edad máxima debe estar entre 7 y 10 años')
+        return v
+
 
 class CategoriaCreate(CategoriaBase):
     pass
 
 
 class CategoriaUpdate(BaseModel):
-    nombre: Optional[str]
-    descripcion: Optional[str]
-    edad_minima: Optional[int]
-    edad_maxima: Optional[int]
-    color: Optional[str]
-    icono: Optional[str]
-    activo: Optional[bool]
+    nombre: Optional[str] = None
+    descripcion: Optional[str] = None
+    edad_minima: Optional[int] = None
+    edad_maxima: Optional[int] = None
+    color: Optional[str] = None
+    icono: Optional[str] = None
+    activo: Optional[bool] = None
+
+    @validator('edad_minima')
+    def validar_edad_minima(cls, v):
+        if v is not None and (v < 7 or v > 10):
+            raise ValueError('La edad mínima debe estar entre 7 y 10 años')
+        return v
+
+    @validator('edad_maxima')
+    def validar_edad_maxima(cls, v):
+        if v is not None and (v < 7 or v > 10):
+            raise ValueError('La edad máxima debe estar entre 7 y 10 años')
+        return v
 
 
 class CategoriaResponse(CategoriaBase):
@@ -65,7 +89,7 @@ def listar_categorias(
 
 
 # ============================================================
-# 2. Crear categoría
+# 2. Crear categoría (VALIDACIÓN: 7-10 AÑOS)
 # ============================================================
 
 @router.post("/", response_model=CategoriaResponse)
@@ -74,13 +98,20 @@ def crear_categoria(
     db: Session = Depends(get_db),
     docente=Depends(requiere_docente)
 ):
+    # Validar que edad_minima <= edad_maxima
+    if datos.edad_minima > datos.edad_maxima:
+        raise HTTPException(
+            status_code=422,
+            detail="La edad mínima no puede ser mayor que la edad máxima"
+        )
+
     categoria = CategoriaLectura(
         nombre=datos.nombre,
-        descripcion=datos.descripcion,
+        descripcion=datos.descripcion or "",
         edad_minima=datos.edad_minima,
         edad_maxima=datos.edad_maxima,
         color=datos.color,
-        icono=datos.icono,
+        icono=datos.icono or "",
         activo=True
     )
 
@@ -92,7 +123,7 @@ def crear_categoria(
 
 
 # ============================================================
-# 3. Actualizar categoría
+# 3. Actualizar categoría (VALIDACIÓN: 7-10 AÑOS)
 # ============================================================
 
 @router.put("/{categoria_id}", response_model=CategoriaResponse)
@@ -107,9 +138,32 @@ def actualizar_categoria(
     if not categoria:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
 
-    # Actualizar valores
-    for key, value in datos.dict(exclude_unset=True).items():
-        setattr(categoria, key, value)
+    # Obtener valores actuales o nuevos
+    nueva_edad_minima = datos.edad_minima if datos.edad_minima is not None else categoria.edad_minima
+    nueva_edad_maxima = datos.edad_maxima if datos.edad_maxima is not None else categoria.edad_maxima
+
+    # Validar que edad_minima <= edad_maxima
+    if nueva_edad_minima > nueva_edad_maxima:
+        raise HTTPException(
+            status_code=422,
+            detail="La edad mínima no puede ser mayor que la edad máxima"
+        )
+
+    # Actualizar valores solo si vienen en el request
+    if datos.nombre is not None:
+        categoria.nombre = datos.nombre
+    if datos.descripcion is not None:
+        categoria.descripcion = datos.descripcion
+    if datos.edad_minima is not None:
+        categoria.edad_minima = datos.edad_minima
+    if datos.edad_maxima is not None:
+        categoria.edad_maxima = datos.edad_maxima
+    if datos.color is not None:
+        categoria.color = datos.color
+    if datos.icono is not None:
+        categoria.icono = datos.icono
+    if datos.activo is not None:
+        categoria.activo = datos.activo
 
     db.commit()
     db.refresh(categoria)

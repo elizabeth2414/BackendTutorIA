@@ -219,6 +219,10 @@ def listar_estudiantes_docente(
 
     return [row._asdict() for row in ests]
 
+
+# ================================================================
+#   OBTENER UN ESTUDIANTE (DOCENTE)
+# ================================================================
 @router.get("/estudiantes/{estudiante_id}")
 def obtener_estudiante_docente(
     estudiante_id: int,
@@ -253,6 +257,76 @@ def obtener_estudiante_docente(
         "necesidades_especiales": est.necesidades_especiales,
         "curso_id": curso_asignado[0] if curso_asignado else None
     }
+
+
+# ================================================================
+#   ACTUALIZAR ESTUDIANTE (DOCENTE) ✅ NUEVO
+# ================================================================
+@router.put("/estudiantes/{estudiante_id}")
+def actualizar_estudiante_docente(
+    estudiante_id: int,
+    datos: EstudianteUpdateDocente,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
+    # 1. Obtener docente
+    docente = obtener_o_crear_docente(db, usuario_actual.id)
+
+    # 2. Buscar estudiante que pertenezca a este docente
+    estudiante = (
+        db.query(Estudiante)
+        .filter(Estudiante.id == estudiante_id)
+        .filter(Estudiante.docente_id == docente.id)
+        .first()
+    )
+
+    if not estudiante:
+        raise HTTPException(
+            status_code=404,
+            detail="Estudiante no encontrado o no pertenece a este docente."
+        )
+
+    # 3. Actualizar campos del estudiante (solo los que vienen en el request)
+    campos_actualizados = datos.dict(exclude_unset=True, exclude={'curso_id'})
+    
+    for campo, valor in campos_actualizados.items():
+        setattr(estudiante, campo, valor)
+
+    # 4. Actualizar curso si cambió
+    if datos.curso_id is not None:
+        # Eliminar la relación anterior
+        db.query(EstudianteCurso).filter(
+            EstudianteCurso.estudiante_id == estudiante_id
+        ).delete()
+        
+        # Crear nueva relación
+        nueva_relacion = EstudianteCurso(
+            estudiante_id=estudiante_id,
+            curso_id=datos.curso_id
+        )
+        db.add(nueva_relacion)
+
+    db.commit()
+    db.refresh(estudiante)
+
+    # 5. Obtener curso actualizado para la respuesta
+    curso_asignado = (
+        db.query(EstudianteCurso.curso_id)
+        .filter(EstudianteCurso.estudiante_id == estudiante_id)
+        .first()
+    )
+
+    return {
+        "mensaje": "Estudiante actualizado correctamente",
+        "id": estudiante.id,
+        "nombre": estudiante.nombre,
+        "apellido": estudiante.apellido,
+        "fecha_nacimiento": estudiante.fecha_nacimiento,
+        "nivel_educativo": estudiante.nivel_educativo,
+        "necesidades_especiales": estudiante.necesidades_especiales,
+        "curso_id": curso_asignado[0] if curso_asignado else None
+    }
+
 
 # ================================================================
 #   ELIMINAR ESTUDIANTE (DOCENTE)
