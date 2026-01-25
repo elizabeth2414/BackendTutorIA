@@ -79,3 +79,15 @@ def eliminar_docente_route(
 ):
     eliminar_docente_admin(db, docente_id)
     return {"mensaje": "Docente eliminado correctamente"}
+
+@router.patch("/{docente_id}/toggle", response_model=DocenteAdminResponse)
+def toggle_docente_route(
+    docente_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(requiere_admin)
+):
+    """
+    Activa o desactiva un docente (NO lo elimina).
+    """
+    from app.servicios.docente_admin import toggle_docente_admin
+    return toggle_docente_admin(db, docente_id)

@@ -21,9 +21,11 @@ from app.esquemas.estudiante_curso import (
 from app.servicios.curso import (
     crear_curso,
     obtener_cursos,
+    obtener_cursos_activos,  # ← NUEVO
     obtener_curso,
     actualizar_curso as actualizar_curso_service,
     eliminar_curso as eliminar_curso_service,
+    toggle_curso_activo,  # ← NUEVO
     inscribir_estudiante,
     obtener_estudiantes_curso,
     obtener_cursos_estudiante,
@@ -44,6 +46,9 @@ def crear_nuevo_curso(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
+    """
+    Crea un nuevo curso con código de acceso autogenerado.
+    """
     # Buscar el docente asociado al usuario
     docente = (
         db.query(Docente)
@@ -68,7 +73,7 @@ def crear_nuevo_curso(
 
 
 # ================================================================
-#   LISTAR CURSOS
+#   LISTAR CURSOS (Todos - activos e inactivos)
 # ================================================================
 @router.get("/", response_model=List[CursoResponse])
 def listar_cursos(
@@ -79,6 +84,10 @@ def listar_cursos(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
+    """
+    Lista todos los cursos (activos e inactivos).
+    Para admin: lista de gestión.
+    """
     # Si no se envía docente_id, usar el docente del usuario logueado
     if docente_id is None:
         docente = (
@@ -100,6 +109,32 @@ def listar_cursos(
 
 
 # ================================================================
+#   LISTAR SOLO CURSOS ACTIVOS (Para combobox)
+# ================================================================
+@router.get("/activos", response_model=List[CursoResponse])
+def listar_cursos_activos(
+    docente_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+):
+    """
+    Lista SOLO cursos activos.
+    Úsala en combobox, selects, asignaciones, etc.
+    """
+    # Si no se envía docente_id, usar el docente del usuario logueado
+    if docente_id is None:
+        docente = (
+            db.query(Docente)
+            .filter(Docente.usuario_id == usuario_actual.id)
+            .first()
+        )
+        if docente:
+            docente_id = docente.id
+
+    return obtener_cursos_activos(db, docente_id)
+
+
+# ================================================================
 #   OBTENER CURSO POR ID
 # ================================================================
 @router.get("/{curso_id}", response_model=CursoResponse)
@@ -108,6 +143,7 @@ def obtener_curso_por_id(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
+    """Obtiene un curso específico por ID."""
     curso = obtener_curso(db, curso_id)
     if not curso:
         raise HTTPException(status_code=404, detail="Curso no encontrado")
@@ -124,11 +160,28 @@ def actualizar_curso_router(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
+    """Actualiza los datos de un curso."""
     return actualizar_curso_service(db, curso_id, datos)
 
 
 # ================================================================
-#   ELIMINAR CURSO
+#   TOGGLE ACTIVO/INACTIVO
+# ================================================================
+@router.patch("/{curso_id}/toggle", response_model=CursoResponse)
+def toggle_curso_router(
+    curso_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+):
+    """
+    Activa o desactiva un curso (toggle).
+    Úsala para el botón de estado en el frontend.
+    """
+    return toggle_curso_activo(db, curso_id)
+
+
+# ================================================================
+#   ELIMINAR CURSO (Con validación de relaciones)
 # ================================================================
 @router.delete("/{curso_id}")
 def eliminar_curso_router(
@@ -136,8 +189,12 @@ def eliminar_curso_router(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
-    eliminar_curso_service(db, curso_id)
-    return {"mensaje": "Curso eliminado correctamente"}
+    """
+    Elimina un curso SOLO si no tiene relaciones.
+    Si tiene estudiantes, lecturas o actividades, lanza error 400.
+    """
+    resultado = eliminar_curso_service(db, curso_id)
+    return resultado
 
 
 # ================================================================
@@ -150,6 +207,10 @@ def inscribir_estudiante_curso(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
+    """
+    Inscribe un estudiante a un curso.
+    Solo permite inscripción si el curso está activo.
+    """
     return inscribir_estudiante(db, curso_id, inscripcion.estudiante_id)
 
 
@@ -162,6 +223,7 @@ def listar_estudiantes_curso(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
+    """Lista todos los estudiantes inscritos en un curso."""
     return obtener_estudiantes_curso(db, curso_id)
 
 
@@ -174,4 +236,8 @@ def listar_cursos_estudiante(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual),
 ):
+    """
+    Lista todos los cursos en los que está inscrito un estudiante.
+    Solo retorna cursos activos.
+    """
     return obtener_cursos_estudiante(db, estudiante_id)

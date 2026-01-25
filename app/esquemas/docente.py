@@ -25,6 +25,12 @@ class DocenteCreate(DocenteBase):
 
 
 class DocenteUpdate(BaseModel):
+    # Campos del USUARIO
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    email: Optional[EmailStr] = None
+    
+    # Campos del DOCENTE
     especialidad: Optional[str] = None
     grado_academico: Optional[str] = None
     institucion: Optional[str] = None

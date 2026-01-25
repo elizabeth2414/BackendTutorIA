@@ -19,3 +19,14 @@ class Usuario(Base):
     deleted_at = Column(DateTime(timezone=True), nullable=True)
     otp_secret = Column(String(255))
     otp_habilitado = Column(Boolean, default=False)
+
+    # Verificación de email
+    email_verificado = Column(Boolean, default=False, nullable=False)
+    token_verificacion = Column(String(255), nullable=True, index=True)
+    token_verificacion_expira = Column(DateTime(timezone=True), nullable=True)
+    
+    # Reset de contraseña
+    token_reset_password = Column(String(255), nullable=True, index=True)
+    token_reset_expira = Column(DateTime(timezone=True), nullable=True)
+    token_reset_usado = Column(Boolean, default=False)
+    token_reset_ip = Column(String(50), nullable=True)

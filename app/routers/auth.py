@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from pydantic import BaseModel, EmailStr
 
 from app.config import get_db
 from app.modelos import Usuario, UsuarioRol, Padre
@@ -19,12 +20,14 @@ from app.servicios.auth import (
     crear_usuario,
     cambiar_password,
     resetear_password,
-    confirmar_reset_password
+    confirmar_reset_password,
+    verificar_email,          # ✅ NUEVO
+    reenviar_verificacion     # ✅ NUEVO
 )
 
 from app.servicios.seguridad import (
     obtener_usuario_actual,
-    crear_token_acceso,   # ✅ ESTA ERA LA CLAVE
+    crear_token_acceso,
     asignar_rol
 )
 
@@ -32,12 +35,21 @@ router = APIRouter(prefix="/auth", tags=["autenticacion"])
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
+
+# ============================
+# SCHEMA NUEVO (si no lo tienes en esquemas)
+# ============================
+class ReenviarVerificacionRequest(BaseModel):
+    email: EmailStr
+
+
 # ============================
 # REGISTRO
 # ============================
 @router.post("/registro", response_model=UsuarioResponse)
 def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     return crear_usuario(db, usuario)
+
 
 # ============================
 # LOGIN
@@ -47,7 +59,10 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
+    # ⚠️ OJO: autenticar_usuario ahora puede lanzar HTTPException 403
+    # si el email no está verificado. Eso está bien: FastAPI lo devolverá.
     usuario = autenticar_usuario(db, form_data.username, form_data.password)
+
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -67,6 +82,30 @@ def login(
         "expires_in": int(access_token_expires.total_seconds())
     }
 
+
+# ============================
+# VERIFICAR EMAIL (NUEVO)
+# Link típico: /auth/verificar-email?token=xxxxx
+# ============================
+@router.get("/verificar-email")
+def verificar_email_endpoint(
+    token: str = Query(..., min_length=10),
+    db: Session = Depends(get_db)
+):
+    return verificar_email(db, token)
+
+
+# ============================
+# REENVIAR VERIFICACIÓN (NUEVO)
+# ============================
+@router.post("/reenviar-verificacion")
+def reenviar_verificacion_endpoint(
+    request: ReenviarVerificacionRequest,
+    db: Session = Depends(get_db)
+):
+    return reenviar_verificacion(db, request.email)
+
+
 # ============================
 # CAMBIO PASSWORD
 # ============================
@@ -78,6 +117,7 @@ def cambio_password_endpoint(
 ):
     return cambiar_password(db, usuario_actual.id, cambio)
 
+
 # ============================
 # RESET PASSWORD
 # ============================
@@ -87,23 +127,7 @@ def reset_password(
     req: Request,
     db: Session = Depends(get_db)
 ):
-    """
-    Solicita un token de reset de contraseña.
 
-    El token se genera y guarda en la BD con expiración de 1 hora.
-    En producción, se enviaría por email al usuario.
-
-    Por seguridad, siempre retorna el mismo mensaje independientemente
-    de si el email existe o no.
-
-    Args:
-        request: Objeto con el email del usuario
-        req: Request object (para obtener IP)
-        db: Sesión de base de datos
-
-    Returns:
-        dict: Mensaje genérico + token en modo debug
-    """
     # Obtener IP del cliente
     ip_address = None
     if hasattr(req, 'client') and req.client:
@@ -117,28 +141,12 @@ def reset_password(
 
 
 @router.post("/confirm-reset-password")
-def confirm_reset_password(
+def confirm_reset_password_endpoint(
     request: ResetPasswordConfirm,
     db: Session = Depends(get_db)
 ):
-    """
-    Confirma el reset de contraseña usando el token recibido.
-
-    El token debe ser válido, no usado y no expirado.
-    Si es válido, cambia la contraseña del usuario.
-
-    Args:
-        request: Objeto con token y nueva contraseña
-        db: Sesión de base de datos
-
-    Returns:
-        dict: Mensaje de éxito
-
-    Raises:
-        HTTPException 400: Si el token es inválido, usado o expirado
-        HTTPException 400: Si la contraseña no cumple requisitos
-    """
     return confirmar_reset_password(db, request.token, request.nuevo_password)
+
 
 # ============================
 # USUARIO ACTUAL
@@ -171,13 +179,35 @@ def me(
         roles=roles,
     )
 
+
 # ============================
 # REGISTRO PADRE
 # ============================
 @router.post("/registro-padre", response_model=UsuarioResponse)
 def registro_padre(datos: UsuarioCreate, db: Session = Depends(get_db)):
-    nuevo_usuario = crear_usuario(db, datos)
+    # 1) Si ya existe usuario, NO crearlo de nuevo
+    usuario = db.query(Usuario).filter(Usuario.email == datos.email).first()
 
+    if usuario:
+        # asignar rol padre (si tu asignar_rol ya evita duplicados, perfecto)
+        asignar_rol(db, usuario.id, "padre")
+
+        # crear Padre solo si no existe
+        padre = db.query(Padre).filter(Padre.usuario_id == usuario.id).first()
+        if not padre:
+            padre = Padre(
+                usuario_id=usuario.id,
+                parentesco="padre",
+                notificaciones_activas=True
+            )
+            db.add(padre)
+            db.commit()
+            db.refresh(padre)
+
+        return usuario
+
+    # 2) Si no existe, crear y luego lo normal
+    nuevo_usuario = crear_usuario(db, datos)
     asignar_rol(db, nuevo_usuario.id, "padre")
 
     nuevo_padre = Padre(
@@ -185,9 +215,32 @@ def registro_padre(datos: UsuarioCreate, db: Session = Depends(get_db)):
         parentesco="padre",
         notificaciones_activas=True
     )
-
     db.add(nuevo_padre)
     db.commit()
     db.refresh(nuevo_padre)
 
     return nuevo_usuario
+
+
+# ✅ CAMBIO ÚNICO: esta ruta ya no se llama igual que la de token
+@router.get("/verificar-email-disponible")
+async def verificar_email_disponible(
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Verifica si un email ya está registrado en la base de datos.
+    Retorna: { "disponible": true/false }
+    """
+    usuario_existe = db.query(Usuario).filter(Usuario.email == email).first()
+
+    if usuario_existe:
+        return {
+            "disponible": False,
+            "mensaje": "Este correo electrónico ya está registrado"
+        }
+
+    return {
+        "disponible": True,
+        "mensaje": "Correo disponible"
+    }

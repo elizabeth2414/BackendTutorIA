@@ -1,14 +1,3 @@
-"""
-Servicio de Email - TutorIA
-
-Soporta múltiples proveedores de email:
-1. SMTP (Gmail, Outlook, cualquier servidor SMTP)
-2. SendGrid (API)
-3. Modo desarrollo (imprime en consola)
-
-Configuración vía variables de entorno en .env
-"""
-
 import smtplib
 import os
 from email.mime.text import MIMEText
@@ -34,7 +23,7 @@ class EmailService:
 
     def __init__(self):
         self.email_provider = getattr(settings, 'EMAIL_PROVIDER', 'smtp').lower()
-        self.email_from = getattr(settings, 'EMAIL_FROM', 'noreply@tutoria.com')
+        self.email_from = getattr(settings, 'EMAIL_FROM', 'neiracarmen28@gmail.com')
         self.frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
 
         # Configuración SMTP
@@ -274,7 +263,7 @@ class EmailService:
         text_content = f"""
 Hola {usuario_nombre},
 
-Recibimos una solicitud para resetear tu contraseña en TutorIA.
+Recibimos una solicitud para resetear tu contraseña en BookiSmartIA.
 
 Si fuiste tú, haz clic en el siguiente enlace para crear una nueva contraseña:
 {reset_url}
@@ -287,11 +276,65 @@ Este enlace expira en 1 hora.
 Si no solicitaste este cambio, puedes ignorar este email de forma segura.
 
 Saludos,
-Equipo TutorIA
+Equipo  BookiSmartIA
         """.strip()
 
         # Enviar
-        subject = "Resetear Contraseña - TutorIA"
+        subject = "Resetear Contraseña - BookiSmartIA"
+        return self.send_email(to_email, subject, html_content, text_content)
+
+    # ==================== NUEVO MÉTODO - VERIFICACIÓN DE EMAIL ====================
+    def send_verification_email(
+        self,
+        to_email: str,
+        usuario_nombre: str,
+        verify_token: str
+    ) -> bool:
+        """
+        Envía email de verificación de cuenta.
+
+        Args:
+            to_email: Email del destinatario
+            usuario_nombre: Nombre del usuario
+            verify_token: Token de verificación
+
+        Returns:
+            bool: True si se envió correctamente
+        """
+        # Cargar plantilla
+        template = self._load_template('email_verification.html')
+
+        # URL completa para verificar
+        verify_url = f"{self.frontend_url}/verificar-email?token={verify_token}"
+
+        # Reemplazar variables en la plantilla
+        html_content = template.replace('{{USUARIO_NOMBRE}}', usuario_nombre)
+        html_content = html_content.replace('{{VERIFY_URL}}', verify_url)
+        html_content = html_content.replace('{{TOKEN}}', verify_token)
+        html_content = html_content.replace('{{FRONTEND_URL}}', self.frontend_url)
+
+        # Contenido texto plano (fallback)
+        text_content = f"""
+Hola {usuario_nombre},
+
+¡Bienvenido a BookiSmartIA!
+
+Para verificar tu correo electrónico y activar tu cuenta, haz clic en el siguiente enlace:
+{verify_url}
+
+O copia y pega este token en la aplicación:
+{verify_token}
+
+Este enlace expira en 24 horas.
+
+Si no creaste esta cuenta, puedes ignorar este email de forma segura.
+
+Saludos,
+Equipo BookiSmartIA
+        """.strip()
+
+        # Enviar
+        subject = "Verifica tu correo - BookiSmartIA"
         return self.send_email(to_email, subject, html_content, text_content)
 
 

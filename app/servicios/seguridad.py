@@ -15,10 +15,6 @@ from app.modelos import Usuario, UsuarioRol, Docente
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Ojo: este tokenUrl es el endpoint de login que ya tienes definido.
-# Si tu router de auth está con prefix="/auth" y lo incluyes con prefix="/api",
-# el endpoint real será /api/auth/login, pero aquí puede quedar "auth/login"
-# porque solo se usa para la documentación de OpenAPI.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
@@ -34,7 +30,7 @@ def obtener_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-# Alias para reutilizar en otros módulos (como docente_admin.py)
+# Alias para reutilizar en otros módulos
 def get_password_hash(password: str) -> str:
     return obtener_password_hash(password)
 
@@ -80,6 +76,16 @@ async def obtener_usuario_actual(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
+    """
+    Obtiene el usuario actual desde el token JWT.
+    
+    Validaciones:
+    1. Token válido
+    2. Usuario existe
+    3. Usuario NO eliminado (deleted_at is None)
+    4. Usuario activo
+    5. Usuario no bloqueado
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudieron validar las credenciales",
@@ -94,9 +100,37 @@ async def obtener_usuario_actual(
     if email is None:
         raise credentials_exception
 
+    # Buscar usuario
     usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if usuario is None:
         raise credentials_exception
+
+    # ✅ VALIDACIÓN 1: Usuario NO eliminado
+    if usuario.deleted_at is not None:
+        from app.logs.logger import logger
+        logger.warning(f"⚠️ Intento de acceso con token de usuario eliminado: {email}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta ha sido deshabilitada. Contacta al administrador."
+        )
+
+    # ✅ VALIDACIÓN 2: Usuario activo
+    if not usuario.activo:
+        from app.logs.logger import logger
+        logger.warning(f"⚠️ Intento de acceso con token de usuario inactivo: {email}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta está inactiva. Contacta al administrador."
+        )
+
+    # ✅ VALIDACIÓN 3: Usuario no bloqueado
+    if getattr(usuario, "bloqueado", False):
+        from app.logs.logger import logger
+        logger.warning(f"⚠️ Intento de acceso con token de usuario bloqueado: {email}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta está bloqueada. Contacta al administrador."
+        )
 
     return usuario
 
@@ -176,24 +210,6 @@ def requiere_admin(
 ) -> Usuario:
     """
     Dependency que verifica que el usuario autenticado tenga rol 'admin'.
-
-    Uso:
-        @router.post("/admin/recurso")
-        def crear_recurso(
-            admin: Usuario = Depends(requiere_admin)
-        ):
-            # Solo usuarios con rol admin pueden acceder
-            ...
-
-    Args:
-        usuario: Usuario autenticado (inyectado automáticamente)
-        db: Sesión de base de datos (inyectada automáticamente)
-
-    Returns:
-        Usuario: El usuario autenticado con rol admin
-
-    Raises:
-        HTTPException 403: Si el usuario no tiene rol admin
     """
     tiene_rol = verificar_rol(db, usuario.id, "admin")
 
@@ -209,30 +225,17 @@ def requiere_admin(
     logger.debug(f"✅ Acceso admin autorizado: {usuario.email}")
     return usuario
 
+
 def requiere_docente(
     usuario: Usuario = Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ) -> Usuario:
     """
     Dependency que verifica que el usuario autenticado tenga rol 'docente'.
-
-    Uso:
-        @router.get("/docentes/mis-cursos")
-        def obtener_mis_cursos(
-            docente: Usuario = Depends(requiere_docente)
-        ):
-            # Solo docentes pueden acceder
-            ...
-
-    Args:
-        usuario: Usuario autenticado (inyectado automáticamente)
-        db: Sesión de base de datos (inyectada automáticamente)
-
-    Returns:
-        Usuario: El usuario autenticado con rol docente
-
-    Raises:
-        HTTPException 403: Si el usuario no tiene rol docente
+    
+    Validaciones adicionales para docentes:
+    - Verifica que el registro en tabla docente NO esté eliminado
+    - Verifica que el docente esté activo
     """
     tiene_rol = verificar_rol(db, usuario.id, "docente")
 
@@ -245,6 +248,31 @@ def requiere_docente(
             detail="Acceso denegado: se requiere rol de docente"
         )
 
+    # ✅ VALIDACIÓN EXTRA: Verificar que el docente NO esté eliminado
+    docente = db.query(Docente).filter(
+        Docente.usuario_id == usuario.id,
+        Docente.deleted_at.is_(None)  # ← Solo docentes NO eliminados
+    ).first()
+    
+    if not docente:
+        logger.warning(
+            f"⚠️ Acceso denegado: {usuario.email} tiene rol docente pero está eliminado o sin registro"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta de docente está deshabilitada. Contacta al administrador."
+        )
+
+    # ✅ VALIDACIÓN EXTRA: Verificar que el docente esté activo
+    if not docente.activo:
+        logger.warning(
+            f"⚠️ Acceso denegado: {usuario.email} tiene docente inactivo"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta de docente está inactiva. Contacta al administrador."
+        )
+
     logger.debug(f"✅ Acceso docente autorizado: {usuario.email}")
     return usuario
 
@@ -255,24 +283,6 @@ def requiere_estudiante(
 ) -> Usuario:
     """
     Dependency que verifica que el usuario autenticado tenga rol 'estudiante'.
-
-    Uso:
-        @router.get("/estudiantes/mi-progreso")
-        def obtener_mi_progreso(
-            estudiante: Usuario = Depends(requiere_estudiante)
-        ):
-            # Solo estudiantes pueden acceder
-            ...
-
-    Args:
-        usuario: Usuario autenticado (inyectado automáticamente)
-        db: Sesión de base de datos (inyectada automáticamente)
-
-    Returns:
-        Usuario: El usuario autenticado con rol estudiante
-
-    Raises:
-        HTTPException 403: Si el usuario no tiene rol estudiante
     """
     tiene_rol = verificar_rol(db, usuario.id, "estudiante")
 
@@ -295,24 +305,6 @@ def requiere_padre(
 ) -> Usuario:
     """
     Dependency que verifica que el usuario autenticado tenga rol 'padre'.
-
-    Uso:
-        @router.get("/padres/mis-hijos")
-        def obtener_mis_hijos(
-            padre: Usuario = Depends(requiere_padre)
-        ):
-            # Solo padres pueden acceder
-            ...
-
-    Args:
-        usuario: Usuario autenticado (inyectado automáticamente)
-        db: Sesión de base de datos (inyectada automáticamente)
-
-    Returns:
-        Usuario: El usuario autenticado con rol padre
-
-    Raises:
-        HTTPException 403: Si el usuario no tiene rol padre
     """
     tiene_rol = verificar_rol(db, usuario.id, "padre")
 
@@ -332,38 +324,7 @@ def requiere_padre(
 def requiere_cualquier_rol(*roles_permitidos: str):
     """
     Factory function que crea una dependency que verifica múltiples roles.
-
     El usuario debe tener AL MENOS UNO de los roles especificados.
-
-    Uso:
-        @router.get("/recursos/compartidos")
-        def obtener_recursos_compartidos(
-            usuario: Usuario = Depends(requiere_cualquier_rol("admin", "docente"))
-        ):
-            # Administradores O docentes pueden acceder
-            ...
-
-    Args:
-        *roles_permitidos: Roles permitidos (ej: "admin", "docente", "estudiante")
-
-    Returns:
-        Callable: Dependency function que verifica los roles
-
-    Example:
-        # Permitir admin O docente
-        @router.post("/contenido")
-        def crear_contenido(
-            usuario: Usuario = Depends(requiere_cualquier_rol("admin", "docente"))
-        ):
-            ...
-
-        # Permitir admin O docente O padre
-        @router.get("/estudiantes/{id}/progreso")
-        def ver_progreso(
-            estudiante_id: int,
-            usuario: Usuario = Depends(requiere_cualquier_rol("admin", "docente", "padre"))
-        ):
-            ...
     """
     def dependency(
         usuario: Usuario = Depends(obtener_usuario_actual),
@@ -396,31 +357,7 @@ def requiere_cualquier_rol(*roles_permitidos: str):
 def requiere_todos_los_roles(*roles_requeridos: str):
     """
     Factory function que crea una dependency que verifica múltiples roles.
-
     El usuario debe tener TODOS los roles especificados.
-
-    Uso:
-        @router.get("/admin/docentes/estadisticas")
-        def estadisticas_avanzadas(
-            usuario: Usuario = Depends(requiere_todos_los_roles("admin", "docente"))
-        ):
-            # Solo usuarios que son TANTO admin COMO docente pueden acceder
-            ...
-
-    Args:
-        *roles_requeridos: Roles requeridos (todos deben estar presentes)
-
-    Returns:
-        Callable: Dependency function que verifica los roles
-
-    Example:
-        # Requiere tener ambos roles
-        @router.post("/cursos/especiales")
-        def crear_curso_especial(
-            usuario: Usuario = Depends(requiere_todos_los_roles("admin", "docente"))
-        ):
-            # El usuario debe ser admin Y docente
-            ...
     """
     def dependency(
         usuario: Usuario = Depends(obtener_usuario_actual),
@@ -450,8 +387,9 @@ def requiere_todos_los_roles(*roles_requeridos: str):
 
     return dependency
 
+
 def asignar_rol(db: Session, usuario_id: int, rol: str):
-    rol = rol.lower()  # 👈 IMPORTANTE
+    rol = rol.lower()
 
     from app.modelos import UsuarioRol
 
@@ -472,7 +410,7 @@ def asignar_rol(db: Session, usuario_id: int, rol: str):
 
     nuevo_rol = UsuarioRol(
         usuario_id=usuario_id,
-        rol=rol,    # 👈 YA ESTÁ EN MINÚSCULA
+        rol=rol,
         activo=True
     )
 
@@ -482,6 +420,7 @@ def asignar_rol(db: Session, usuario_id: int, rol: str):
 
     return nuevo_rol
 
+
 def obtener_docente_actual(
     usuario: Usuario = Depends(requiere_docente),
     db: Session = Depends(get_db)
@@ -489,15 +428,16 @@ def obtener_docente_actual(
     """
     Obtiene el objeto Docente asociado al usuario autenticado.
     
-    Uso:
-        @router.post("/lecturas")
-        def crear_lectura(
-            docente: Docente = Depends(obtener_docente_actual)
-        ):
-            # docente.id es el ID correcto de la tabla docente
-            ...
+    NOTA: requiere_docente ya valida que:
+    - El docente NO esté eliminado (deleted_at is None)
+    - El docente esté activo
+    
+    Por lo tanto, aquí solo necesitamos obtener el objeto.
     """
-    docente = db.query(Docente).filter(Docente.usuario_id == usuario.id).first()
+    docente = db.query(Docente).filter(
+        Docente.usuario_id == usuario.id,
+        Docente.deleted_at.is_(None)  # ← Por seguridad adicional
+    ).first()
     
     if not docente:
         logger.error(f"❌ Usuario {usuario.email} tiene rol docente pero no registro en tabla docente")
