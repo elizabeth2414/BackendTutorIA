@@ -14,9 +14,7 @@ def generar_codigo_acceso(length: int = 8) -> str:
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
-# ================================
-#   CREAR CURSO
-# ================================
+
 def crear_curso(db: Session, curso: CursoCreate):
     """
     Crea un nuevo curso con código de acceso único.
@@ -39,9 +37,7 @@ def crear_curso(db: Session, curso: CursoCreate):
     return db_curso
 
 
-# ================================
-#   LISTAR CURSOS (Todos)
-# ================================
+
 def obtener_cursos(
     db: Session,
     skip: int = 0,
@@ -77,9 +73,7 @@ def obtener_cursos(
     return query.offset(skip).limit(limit).all()
 
 
-# ================================
-#   LISTAR SOLO CURSOS ACTIVOS (Para combobox)
-# ================================
+
 def obtener_cursos_activos(
     db: Session,
     docente_id: Optional[int] = None
@@ -107,9 +101,7 @@ def obtener_cursos_activos(
     return query.all()
 
 
-# ================================
-#   OBTENER CURSO POR ID
-# ================================
+
 def obtener_curso(db: Session, curso_id: int):
     """
     Obtiene un curso por ID (solo si NO está eliminado).
@@ -136,9 +128,7 @@ def obtener_curso_por_codigo(db: Session, codigo_acceso: str):
     return query.first()
 
 
-# ================================
-#   ACTUALIZAR CURSO
-# ================================
+
 def actualizar_curso(db: Session, curso_id: int, curso: CursoUpdate):
     """
     Actualiza un curso existente.
@@ -156,9 +146,7 @@ def actualizar_curso(db: Session, curso_id: int, curso: CursoUpdate):
     return db_curso
 
 
-# ================================
-#   VALIDAR RELACIONES ANTES DE ELIMINAR
-# ================================
+
 def validar_relaciones_curso(db: Session, curso_id: int):
     """
     Valida si un curso tiene relaciones que impiden su eliminación.
@@ -182,7 +170,7 @@ def validar_relaciones_curso(db: Session, curso_id: int):
         EstudianteCurso.curso_id == curso_id
     ).count()
     
-    # Contar lecturas del curso (si existe el modelo)
+    
     lecturas_count = 0
     try:
         from app.modelos.lectura import Lectura
@@ -190,9 +178,9 @@ def validar_relaciones_curso(db: Session, curso_id: int):
             Lectura.curso_id == curso_id
         ).count()
     except ImportError:
-        pass  # El modelo Lectura no existe aún
+        pass 
     
-    # Contar actividades del curso (si existe el modelo)
+   
     actividades_count = 0
     try:
         from app.modelos.actividad import Actividad
@@ -200,9 +188,8 @@ def validar_relaciones_curso(db: Session, curso_id: int):
             Actividad.curso_id == curso_id
         ).count()
     except ImportError:
-        pass  # El modelo Actividad no existe aún
-    
-    # Verificar si tiene relaciones
+        pass  
+   
     tiene_relaciones = (
         estudiantes_count > 0 or 
         lecturas_count > 0 or 
@@ -221,9 +208,7 @@ def validar_relaciones_curso(db: Session, curso_id: int):
     }
 
 
-# ================================
-#   ELIMINAR CURSO (Con validación)
-# ================================
+
 def eliminar_curso(db: Session, curso_id: int):
     """
     Elimina un curso SOLO si no tiene relaciones.
@@ -279,9 +264,7 @@ def eliminar_curso(db: Session, curso_id: int):
         )
 
 
-# ================================
-#   TOGGLE ACTIVO/INACTIVO
-# ================================
+
 def toggle_curso_activo(db: Session, curso_id: int):
     """
     Activa o desactiva un curso.
@@ -306,9 +289,7 @@ def toggle_curso_activo(db: Session, curso_id: int):
     return db_curso
 
 
-# ================================
-#   INSCRIBIR ESTUDIANTE EN CURSO
-# ================================
+
 def inscribir_estudiante(db: Session, curso_id: int, estudiante_id: int):
     """
     Inscribe un estudiante en un curso.
@@ -349,9 +330,7 @@ def inscribir_estudiante(db: Session, curso_id: int, estudiante_id: int):
     return db_inscripcion
 
 
-# ================================
-#   LISTAR ESTUDIANTES DE UN CURSO
-# ================================
+
 def obtener_estudiantes_curso(db: Session, curso_id: int):
     """Lista estudiantes inscritos en un curso."""
     return db.query(EstudianteCurso).filter(
@@ -359,9 +338,7 @@ def obtener_estudiantes_curso(db: Session, curso_id: int):
     ).all()
 
 
-# ================================
-#   LISTAR CURSOS DE UN ESTUDIANTE
-# ================================
+
 def obtener_cursos_estudiante(db: Session, estudiante_id: int):
     """
     Lista cursos en los que está inscrito un estudiante.

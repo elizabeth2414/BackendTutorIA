@@ -1,5 +1,3 @@
-# app/servicios/actividad_lectura.py
-
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import List, Optional

@@ -89,9 +89,6 @@ def agregar_puntos_estudiante(db: Session, puntos: HistorialPuntosCreate):
     - Registro en historial_puntos
     """
 
-    # ============================================
-    # 1. VALIDACIONES
-    # ============================================
 
     # Validar que el estudiante existe
     estudiante = db.query(Estudiante).filter(
@@ -99,7 +96,7 @@ def agregar_puntos_estudiante(db: Session, puntos: HistorialPuntosCreate):
     ).first()
 
     if not estudiante:
-        logger.error(f"❌ Intento de agregar puntos a estudiante inexistente ID={puntos.estudiante_id}")
+        logger.error(f" Intento de agregar puntos a estudiante inexistente ID={puntos.estudiante_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Estudiante con ID {puntos.estudiante_id} no encontrado"
@@ -107,21 +104,17 @@ def agregar_puntos_estudiante(db: Session, puntos: HistorialPuntosCreate):
 
     # Validar puntos no negativos (a menos que sea penalización explícita)
     if puntos.puntos < 0:
-        logger.warning(f"⚠️ Agregando puntos negativos ({puntos.puntos}) a estudiante {estudiante.nombre} - Motivo: {puntos.motivo}")
+        logger.warning(f" Agregando puntos negativos ({puntos.puntos}) a estudiante {estudiante.nombre} - Motivo: {puntos.motivo}")
 
-    # ============================================
-    # 2. REGISTRAR PUNTOS EN HISTORIAL
-    # ============================================
+
 
     db_puntos = HistorialPuntos(**puntos.dict())
     db.add(db_puntos)
     db.flush()  # Para obtener el ID sin hacer commit aún
 
-    logger.info(f"📊 Puntos registrados: +{puntos.puntos} para {estudiante.nombre} - Motivo: {puntos.motivo}")
+    logger.info(f" Puntos registrados: +{puntos.puntos} para {estudiante.nombre} - Motivo: {puntos.motivo}")
 
-    # ============================================
-    # 3. OBTENER O CREAR NIVEL DEL ESTUDIANTE
-    # ============================================
+
 
     nivel_estudiante = db.query(NivelEstudiante).filter(
         NivelEstudiante.estudiante_id == puntos.estudiante_id
@@ -144,9 +137,7 @@ def agregar_puntos_estudiante(db: Session, puntos: HistorialPuntosCreate):
         db.flush()
         logger.info(f"✨ Nivel inicial creado para estudiante {estudiante.nombre}")
 
-    # ============================================
-    # 4. ACTUALIZAR PUNTOS Y NIVEL
-    # ============================================
+    
 
     nivel_anterior = nivel_estudiante.nivel_actual
 
@@ -154,9 +145,7 @@ def agregar_puntos_estudiante(db: Session, puntos: HistorialPuntosCreate):
     nivel_estudiante.puntos_totales += puntos.puntos
     nivel_estudiante.puntos_nivel_actual += puntos.puntos
 
-    # ============================================
-    # 5. LÓGICA DE SUBIDA DE NIVEL
-    # ============================================
+  
 
     # Verificar si subió de nivel (puede subir múltiples niveles si ganó muchos puntos)
     niveles_subidos = 0
@@ -169,7 +158,6 @@ def agregar_puntos_estudiante(db: Session, puntos: HistorialPuntosCreate):
         niveles_subidos += 1
 
         # Calcular puntos necesarios para el siguiente nivel
-        # Fórmula: nivel * 1000 (cada nivel requiere más puntos)
         nivel_estudiante.puntos_para_siguiente_nivel = nivel_estudiante.nivel_actual * 1000
 
         logger.info(f"🎉 ¡{estudiante.nombre} subió al nivel {nivel_estudiante.nivel_actual}!")
@@ -182,9 +170,7 @@ def agregar_puntos_estudiante(db: Session, puntos: HistorialPuntosCreate):
             f"(faltan {puntos_faltantes} para nivel {nivel_estudiante.nivel_actual + 1})"
         )
 
-    # ============================================
-    # 6. COMMIT Y RETORNO
-    # ============================================
+
 
     try:
         db.commit()
@@ -193,12 +179,12 @@ def agregar_puntos_estudiante(db: Session, puntos: HistorialPuntosCreate):
         # Log final
         if niveles_subidos > 0:
             logger.info(
-                f"✅ Puntos agregados exitosamente: {estudiante.nombre} "
+                f"Puntos agregados exitosamente: {estudiante.nombre} "
                 f"({nivel_anterior} → {nivel_estudiante.nivel_actual}, +{puntos.puntos} pts)"
             )
         else:
             logger.info(
-                f"✅ Puntos agregados exitosamente: {estudiante.nombre} "
+                f"Puntos agregados exitosamente: {estudiante.nombre} "
                 f"(Nivel {nivel_estudiante.nivel_actual}, +{puntos.puntos} pts)"
             )
 
@@ -206,7 +192,7 @@ def agregar_puntos_estudiante(db: Session, puntos: HistorialPuntosCreate):
 
     except Exception as e:
         db.rollback()
-        logger.error(f"❌ Error al agregar puntos: {str(e)}")
+        logger.error(f"Error al agregar puntos: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al procesar puntos: {str(e)}"

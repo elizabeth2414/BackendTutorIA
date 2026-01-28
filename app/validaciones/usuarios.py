@@ -58,8 +58,8 @@ def validar_telefono(telefono: str) -> bool:
     # Remover espacios, guiones, paréntesis
     telefono_limpio = re.sub(r'[\s\-\(\)]', '', telefono)
     
-    # Validar que solo contenga números y tenga entre 8 y 15 dígitos
-    if not telefono_limpio.isdigit() or len(telefono_limpio) < 8 or len(telefono_limpio) > 15:
+    # Validar que solo contenga números y tenga entre 7 y 10 dígitos
+    if not telefono_limpio.isdigit() or len(telefono_limpio) < 7 or len(telefono_limpio) > 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Formato de teléfono inválido"

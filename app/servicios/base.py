@@ -1,13 +1,13 @@
 from typing import List, Optional, TypeVar, Generic, Type
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel as PydanticBaseModel  
 
-from app.modelos import Base
+from app.config import Base  
 
-ModelType = TypeVar("ModelType", bound=Base)
-CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
-UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
+ModelType = TypeVar("ModelType", bound=Base)  
+CreateSchemaType = TypeVar("CreateSchemaType", bound=PydanticBaseModel)
+UpdateSchemaType = TypeVar("UpdateSchemaType", bound=PydanticBaseModel)
 
 class ServiceBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def __init__(self, model: Type[ModelType]):

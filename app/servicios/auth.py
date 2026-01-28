@@ -12,14 +12,12 @@ from app.servicios.email_service import email_service
 from app.logs.logger import logger
 
 
-# ✅ Helper timezone-aware (UTC)
+
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
-# ============================================
-# AUTENTICACIÓN
-# ============================================
+
 
 def autenticar_usuario(db: Session, email: str, password: str):
     """
@@ -47,7 +45,7 @@ def autenticar_usuario(db: Session, email: str, password: str):
             detail="Por favor verifica tu email antes de iniciar sesión."
         )
 
-    # ✅ VALIDACIÓN 2: Usuario NO eliminado
+  
     if usuario.deleted_at is not None:
         logger.warning(f"⚠️ Intento de login de usuario eliminado: {email}")
         raise HTTPException(
@@ -55,7 +53,7 @@ def autenticar_usuario(db: Session, email: str, password: str):
             detail="Tu cuenta ha sido deshabilitada. Contacta al administrador."
         )
 
-    # ✅ VALIDACIÓN 3: Usuario activo
+
     if not usuario.activo:
         logger.warning(f"⚠️ Intento de login de usuario inactivo: {email}")
         raise HTTPException(
@@ -63,7 +61,7 @@ def autenticar_usuario(db: Session, email: str, password: str):
             detail="Tu cuenta está inactiva. Contacta al administrador."
         )
 
-    # ✅ VALIDACIÓN 4: Usuario bloqueado (si aplica)
+
     if getattr(usuario, "bloqueado", False):
         logger.warning(f"⚠️ Intento de login de usuario bloqueado: {email}")
         raise HTTPException(
@@ -71,7 +69,7 @@ def autenticar_usuario(db: Session, email: str, password: str):
             detail="Tu cuenta está bloqueada. Contacta al administrador."
         )
 
-    # ✅ Actualizar último login
+
     usuario.ultimo_login = now_utc()
     db.commit()
     
@@ -79,9 +77,7 @@ def autenticar_usuario(db: Session, email: str, password: str):
     return usuario
 
 
-# ============================================
-# REGISTRO
-# ============================================
+
 
 def crear_usuario(db: Session, usuario: UsuarioCreate):
     """
@@ -138,9 +134,7 @@ def crear_usuario(db: Session, usuario: UsuarioCreate):
     return db_usuario
 
 
-# ============================================
-# VERIFICACIÓN DE EMAIL
-# ============================================
+
 
 def verificar_email(db: Session, token: str):
     usuario = db.query(Usuario).filter(
@@ -172,7 +166,7 @@ def reenviar_verificacion(db: Session, email: str):
     # Buscar usuario NO eliminado
     usuario = db.query(Usuario).filter(
         Usuario.email == email,
-        Usuario.deleted_at.is_(None)  # ← Solo no eliminados
+        Usuario.deleted_at.is_(None) 
     ).first()
 
     if not usuario:
@@ -207,9 +201,7 @@ def reenviar_verificacion(db: Session, email: str):
     return {"mensaje": "Email de verificación reenviado exitosamente.", "email": usuario.email}
 
 
-# ============================================
-# CAMBIO DE CONTRASEÑA (LOGUEADO)
-# ============================================
+
 
 def cambiar_password(db: Session, usuario_id: int, cambio: CambioPassword):
     usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
@@ -226,9 +218,7 @@ def cambiar_password(db: Session, usuario_id: int, cambio: CambioPassword):
     return {"mensaje": "Contraseña actualizada correctamente"}
 
 
-# ============================================
-# RESET DE CONTRASEÑA (POR EMAIL)
-# ============================================
+
 
 def resetear_password(db: Session, email: str, ip_address: str = None):
     respuesta_ok = {
@@ -239,7 +229,7 @@ def resetear_password(db: Session, email: str, ip_address: str = None):
     # Buscar usuario NO eliminado
     usuario = db.query(Usuario).filter(
         Usuario.email == email,
-        Usuario.deleted_at.is_(None)  # ← Solo no eliminados
+        Usuario.deleted_at.is_(None)  
     ).first()
     
     if not usuario:
@@ -316,3 +306,29 @@ def confirmar_reset_password(db: Session, token: str, nuevo_password: str):
         "mensaje": "Contraseña restablecida correctamente. Ya puedes iniciar sesión con tu nueva contraseña.",
         "email": usuario.email
     }
+
+def configurar_cuenta_docente(db: Session, token: str, nuevo_password: str):
+    if not nuevo_password or len(nuevo_password) < 6:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
+
+    usuario = db.query(Usuario).filter(
+        Usuario.token_reset_password == token,
+        Usuario.token_reset_expira > now_utc(),
+        Usuario.token_reset_usado == False,
+        Usuario.deleted_at.is_(None)
+    ).first()
+
+    if not usuario:
+        raise HTTPException(status_code=400, detail="Token inválido o expirado")
+
+    usuario.password_hash = obtener_password_hash(nuevo_password)
+    usuario.email_verificado = True
+
+    usuario.token_reset_usado = True
+    usuario.token_reset_password = None
+    usuario.token_reset_expira = None
+
+    usuario.fecha_actualizacion = now_utc()
+    db.commit()
+
+    return {"mensaje": "Cuenta configurada correctamente. Ya puedes iniciar sesión.", "email": usuario.email}

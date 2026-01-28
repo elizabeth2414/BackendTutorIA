@@ -1,0 +1,16 @@
+<html>
+  <body style="font-family: Arial, sans-serif;">
+    <h2>Hola {{USUARIO_NOMBRE}}</h2>
+    <p>El administrador creó tu cuenta en <b>BookiSmartIA</b>.</p>
+    <p>Para configurar tu cuenta (crear tu contraseña) haz clic aquí:</p>
+    <p>
+      <a href="{{SETUP_URL}}" style="background:#7c3aed;color:#fff;padding:10px 14px;border-radius:8px;text-decoration:none;">
+        Configurar mi cuenta
+      </a>
+    </p>
+    <p>Si no funciona el botón, copia y pega este enlace:</p>
+    <p>{{SETUP_URL}}</p>
+    <hr />
+    <p style="color:#666;font-size:12px">Token: {{TOKEN}}</p>
+  </body>
+</html>

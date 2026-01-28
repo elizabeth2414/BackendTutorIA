@@ -2,7 +2,7 @@ from datetime import date, datetime
 from fastapi import HTTPException, status
 
 def validar_edad_estudiante(fecha_nacimiento: date) -> bool:
-    """Validar que la edad del estudiante esté entre 5 y 18 años"""
+    """Validar que la edad del estudiante esté entre  7 y 10 años"""
     hoy = date.today()
     edad = hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
     
@@ -15,7 +15,7 @@ def validar_edad_estudiante(fecha_nacimiento: date) -> bool:
     if edad > 18:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El estudiante no puede tener más de 18 años"
+            detail="El estudiante no puede tener más de 10 años"
         )
     
     return True

@@ -5,15 +5,15 @@ from typing import List
 
 from app.config import get_db
 
-# MODELOS
+
 from app.modelos import (
     Usuario, Docente, Curso, Estudiante, Actividad, EstudianteCurso
 )
 
-# SEGURIDAD
+
 from app.servicios.seguridad import obtener_usuario_actual
 
-# ESQUEMAS
+
 from app.esquemas.docente import DocenteCreate, DocenteResponse, DocenteUpdate
 from app.esquemas.estudiante import EstudianteCreateDocente, EstudianteUpdateDocente
 
@@ -21,9 +21,7 @@ from app.esquemas.estudiante import EstudianteCreateDocente, EstudianteUpdateDoc
 router = APIRouter(prefix="/docentes", tags=["docentes"])
 
 
-# ================================================================
-#  FUNCIÓN QUE GARANTIZA QUE EL DOCENTE EXISTA
-# ================================================================
+
 def obtener_o_crear_docente(db: Session, usuario_id: int):
     docente = db.query(Docente).filter(Docente.usuario_id == usuario_id).first()
 
@@ -36,9 +34,7 @@ def obtener_o_crear_docente(db: Session, usuario_id: int):
     return docente
 
 
-# ================================================================
-#   LISTAR DOCENTES (ADMIN)
-# ================================================================
+
 @router.get("/", response_model=List[DocenteResponse])
 def listar_docentes(
     skip: int = 0,
@@ -57,9 +53,7 @@ def listar_docentes(
     return docentes
 
 
-# ================================================================
-#   DASHBOARD RESUMEN
-# ================================================================
+
 @router.get("/dashboard/resumen")
 def dashboard_resumen(
     db: Session = Depends(get_db),
@@ -91,9 +85,7 @@ def dashboard_resumen(
     }
 
 
-# ================================================================
-#   DASHBOARD - DATOS ESTÁTICOS
-# ================================================================
+
 @router.get("/dashboard/progreso-mensual")
 def progreso_mensual():
     return [
@@ -131,9 +123,7 @@ def niveles_estudiantes(
     return {f"nivel_{n}": c for n, c in niveles}
 
 
-# ================================================================
-#   CURSOS DEL DOCENTE (FUNCIONAL)
-# ================================================================
+
 @router.get("/cursos")
 def cursos_docente(
     db: Session = Depends(get_db),
@@ -158,9 +148,7 @@ def cursos_docente(
     ]
 
 
-# ================================================================
-#   CREAR ESTUDIANTE
-# ================================================================
+
 @router.post("/estudiantes")
 def crear_estudiante_docente(
     datos: EstudianteCreateDocente,
@@ -193,9 +181,7 @@ def crear_estudiante_docente(
     return {"id": est.id, "curso_id": datos.curso_id}
 
 
-# ================================================================
-#   LISTAR ESTUDIANTES DEL DOCENTE (FUNCIONAL)
-# ================================================================
+
 @router.get("/estudiantes")
 def listar_estudiantes_docente(
     db: Session = Depends(get_db),
@@ -220,9 +206,7 @@ def listar_estudiantes_docente(
     return [row._asdict() for row in ests]
 
 
-# ================================================================
-#   OBTENER UN ESTUDIANTE (DOCENTE)
-# ================================================================
+
 @router.get("/estudiantes/{estudiante_id}")
 def obtener_estudiante_docente(
     estudiante_id: int,
@@ -259,9 +243,7 @@ def obtener_estudiante_docente(
     }
 
 
-# ================================================================
-#   ACTUALIZAR ESTUDIANTE (DOCENTE) ✅ NUEVO
-# ================================================================
+
 @router.put("/estudiantes/{estudiante_id}")
 def actualizar_estudiante_docente(
     estudiante_id: int,
@@ -269,10 +251,10 @@ def actualizar_estudiante_docente(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual)
 ):
-    # 1. Obtener docente
+ 
     docente = obtener_o_crear_docente(db, usuario_actual.id)
 
-    # 2. Buscar estudiante que pertenezca a este docente
+    
     estudiante = (
         db.query(Estudiante)
         .filter(Estudiante.id == estudiante_id)
@@ -286,20 +268,20 @@ def actualizar_estudiante_docente(
             detail="Estudiante no encontrado o no pertenece a este docente."
         )
 
-    # 3. Actualizar campos del estudiante (solo los que vienen en el request)
+
     campos_actualizados = datos.dict(exclude_unset=True, exclude={'curso_id'})
     
     for campo, valor in campos_actualizados.items():
         setattr(estudiante, campo, valor)
 
-    # 4. Actualizar curso si cambió
+   
     if datos.curso_id is not None:
-        # Eliminar la relación anterior
+       
         db.query(EstudianteCurso).filter(
             EstudianteCurso.estudiante_id == estudiante_id
         ).delete()
         
-        # Crear nueva relación
+       
         nueva_relacion = EstudianteCurso(
             estudiante_id=estudiante_id,
             curso_id=datos.curso_id
@@ -309,7 +291,7 @@ def actualizar_estudiante_docente(
     db.commit()
     db.refresh(estudiante)
 
-    # 5. Obtener curso actualizado para la respuesta
+    
     curso_asignado = (
         db.query(EstudianteCurso.curso_id)
         .filter(EstudianteCurso.estudiante_id == estudiante_id)
@@ -328,9 +310,7 @@ def actualizar_estudiante_docente(
     }
 
 
-# ================================================================
-#   ELIMINAR ESTUDIANTE (DOCENTE)
-# ================================================================
+
 @router.delete("/estudiantes/{estudiante_id}")
 def eliminar_estudiante_docente(
     estudiante_id: int,
@@ -338,10 +318,10 @@ def eliminar_estudiante_docente(
     usuario_actual: Usuario = Depends(obtener_usuario_actual)
 ):
 
-    # 1. Obtener docente (si no existe se crea)
+   
     docente = obtener_o_crear_docente(db, usuario_actual.id)
 
-    # 2. Buscar estudiante que pertenezca a este docente
+  
     estudiante = (
         db.query(Estudiante)
         .filter(Estudiante.id == estudiante_id)
@@ -355,10 +335,10 @@ def eliminar_estudiante_docente(
             detail="Estudiante no encontrado o no pertenece a este docente."
         )
 
-    # 3. Eliminar relaciones en EstudianteCurso
+    
     db.query(EstudianteCurso).filter(EstudianteCurso.estudiante_id == estudiante_id).delete()
 
-    # 4. Eliminar estudiante
+   
     db.delete(estudiante)
     db.commit()
 
@@ -368,9 +348,7 @@ def eliminar_estudiante_docente(
     }
 
 
-# ================================================================
-#   CRUD DOCENTES DINÁMICOS (AL FINAL)
-# ================================================================
+
 @router.post("/", response_model=DocenteResponse)
 def crear_nuevo_docente(
     docente: DocenteCreate,

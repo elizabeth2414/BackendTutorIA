@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 
 
-# ==================== LOGIN ====================
+
 
 class LoginRequest(BaseModel):
     """Esquema para solicitud de login"""
@@ -11,15 +11,15 @@ class LoginRequest(BaseModel):
     password: str
 
 
-# ==================== TOKEN ====================
+
 
 class Token(BaseModel):
     """Token de acceso JWT - ACTUALIZADO con verificación"""
     access_token: str
     token_type: str
     expires_in: int
-    email_verificado: bool  # ← NUEVO: Indica si el email está verificado
-    requiere_verificacion: bool = False  # ← NUEVO: True si login falló por falta de verificación
+    email_verificado: bool  
+    requiere_verificacion: bool = False  
 
 
 class TokenData(BaseModel):
@@ -29,7 +29,7 @@ class TokenData(BaseModel):
     roles: List[str]
 
 
-# ==================== USUARIO BASE ====================
+
 
 class UsuarioBase(BaseModel):
     """Esquema base de usuario"""
@@ -71,18 +71,14 @@ class UsuarioUpdate(BaseModel):
 class UsuarioResponse(UsuarioBase):
     """Respuesta de usuario - ACTUALIZADO con verificación"""
     id: int
-    email_verificado: bool  # ← NUEVO: Campo de verificación
+    email_verificado: bool 
     bloqueado: bool = False
     fecha_creacion: datetime
     ultimo_login: Optional[datetime] = None
-    roles: List[str] = []  # ← NUEVO: Lista de roles del usuario
+    roles_nombres: List[str] = [] 
 
     class Config:
-        from_attributes = True  # Pydantic v2
-        # orm_mode = True  # Descomentar si usas Pydantic v1
-
-
-# ==================== ROLES ====================
+        from_attributes = True  
 
 class UsuarioRolBase(BaseModel):
     """Esquema base de rol de usuario"""
@@ -106,7 +102,7 @@ class UsuarioRolResponse(UsuarioRolBase):
         from_attributes = True
 
 
-# ==================== CAMBIO DE CONTRASEÑA ====================
+
 
 class CambioPassword(BaseModel):
     """Esquema para cambiar contraseña (usuario autenticado)"""
@@ -121,7 +117,7 @@ class CambioPassword(BaseModel):
         return v
 
 
-# ==================== VERIFICACIÓN DE EMAIL ====================
+
 
 class ReenviarVerificacion(BaseModel):
     """Esquema para reenviar email de verificación"""
@@ -133,7 +129,7 @@ class VerificarEmail(BaseModel):
     token: str
 
 
-# ==================== RESET DE CONTRASEÑA ====================
+
 
 class ResetPasswordRequest(BaseModel):
     """Solicitud de reset de contraseña"""
@@ -153,7 +149,7 @@ class ResetPasswordConfirm(BaseModel):
         return v
 
 
-# ==================== RESPUESTAS GENÉRICAS ====================
+
 
 class MensajeRespuesta(BaseModel):
     """Respuesta genérica con mensaje de éxito o error"""
@@ -165,4 +161,4 @@ class VerificacionRespuesta(BaseModel):
     """Respuesta específica de verificación de email"""
     mensaje: str
     email: str
-    token: Optional[str] = None  # Solo en modo debug/desarrollo
+    token: Optional[str] = None  

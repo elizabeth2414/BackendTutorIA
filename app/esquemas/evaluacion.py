@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from datetime import datetime
 
-# IMPORTS NECESARIOS
+
 from app.esquemas.estudiante import EstudianteResponse
 from app.esquemas.contenido import ContenidoLecturaResponse
 

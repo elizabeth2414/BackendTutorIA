@@ -13,16 +13,14 @@ router = APIRouter(
 )
 
 
-# =========================================================
-# ESTUDIANTE: ver su historial de pronunciación
-# =========================================================
+
 @router.get("/mis")
 def obtener_mi_historial_pronunciacion(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual)
 ):
     """
-    ✅ ACTUALIZADO: Consulta evaluacion_lectura en lugar de historial_pronunciacion
+    ACTUALIZADO: Consulta evaluacion_lectura en lugar de historial_pronunciacion
     """
     estudiante = (
         db.query(Estudiante)
@@ -33,7 +31,7 @@ def obtener_mi_historial_pronunciacion(
     if not estudiante:
         raise HTTPException(404, "Estudiante no encontrado")
 
-    # 🔥 CONSULTAR EVALUACIONES REALES
+  
     evaluaciones = (
         db.query(EvaluacionLectura)
         .filter(EvaluacionLectura.estudiante_id == estudiante.id)
@@ -41,10 +39,10 @@ def obtener_mi_historial_pronunciacion(
         .all()
     )
 
-    # Formatear respuesta compatible con el frontend
+    
     historial = []
     for ev in evaluaciones:
-        # Obtener info de la lectura
+        
         contenido = db.query(ContenidoLectura).filter(
             ContenidoLectura.id == ev.contenido_id
         ).first()
@@ -66,9 +64,7 @@ def obtener_mi_historial_pronunciacion(
     return historial
 
 
-# =========================================================
-# PADRE: ver historial de un hijo
-# =========================================================
+
 @router.get("/hijo/{estudiante_id}")
 def obtener_historial_pronunciacion_hijo(
     estudiante_id: int,
@@ -76,7 +72,7 @@ def obtener_historial_pronunciacion_hijo(
     usuario_actual: Usuario = Depends(obtener_usuario_actual)
 ):
     """
-    ✅ ACTUALIZADO: Consulta evaluacion_lectura en lugar de historial_pronunciacion
+    ACTUALIZADO: Consulta evaluacion_lectura en lugar de historial_pronunciacion
     """
     padre = (
         db.query(Padre)
@@ -99,7 +95,7 @@ def obtener_historial_pronunciacion_hijo(
     if not estudiante:
         raise HTTPException(403, "No autorizado para ver este estudiante")
 
-    # 🔥 CONSULTAR EVALUACIONES REALES
+   
     evaluaciones = (
         db.query(EvaluacionLectura)
         .filter(EvaluacionLectura.estudiante_id == estudiante.id)
@@ -107,10 +103,10 @@ def obtener_historial_pronunciacion_hijo(
         .all()
     )
 
-    # Formatear respuesta compatible con el frontend
+   
     historial = []
     for ev in evaluaciones:
-        # Obtener info de la lectura
+        
         contenido = db.query(ContenidoLectura).filter(
             ContenidoLectura.id == ev.contenido_id
         ).first()

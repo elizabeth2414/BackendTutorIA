@@ -15,4 +15,4 @@ class SesionUsuario(Base):
     dispositivo = Column(String(200))
     activa = Column(Boolean, default=True)
     
-    usuario = relationship("Usuario")
+    usuario = relationship("Usuario", back_populates="sesiones")

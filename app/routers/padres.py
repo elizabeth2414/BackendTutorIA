@@ -1,5 +1,3 @@
-# app/routers/padres.py
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -19,15 +17,13 @@ from app.servicios.padre import crear_padre, obtener_padres, obtener_padre as ob
 
 from app.servicios.estudiante import obtener_cursos_estudiante
 
-# Configurar bcrypt para contraseñas
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 router = APIRouter(prefix="/padres", tags=["Padres"])
 
 
-# ============================================================
-# SCHEMAS PARA EDITAR PERFIL
-# ============================================================
+
 
 class PadrePerfilResponse(BaseModel):
     """Schema para retornar datos del perfil del padre"""
@@ -49,13 +45,11 @@ class ActualizarPerfilRequest(BaseModel):
     apellido: str
     email: EmailStr
     telefono_contacto: Optional[str] = None
-    password_actual: Optional[str] = None  # Opcional - solo si quiere cambiar password
-    password: Optional[str] = None  # Nueva contraseña
+    password_actual: Optional[str] = None  
+    password: Optional[str] = None  
 
 
-# ============================================================
-# 1. LISTAR HIJOS DEL PADRE (MEJORADO - SOLO ACTIVOS)
-# ============================================================
+
 @router.get("/mis-hijos")
 def listar_hijos_con_cursos(
     db: Session = Depends(get_db),
@@ -70,7 +64,7 @@ def listar_hijos_con_cursos(
     if not padre:
         raise HTTPException(status_code=404, detail="No se encontró el perfil de padre")
     
-    # Obtener solo hijos activos vinculados a este padre
+
     estudiantes = (
         db.query(Estudiante)
         .filter(
@@ -80,12 +74,12 @@ def listar_hijos_con_cursos(
         .all()
     )
     
-    # Construir respuesta
+
     result = []
     for estudiante in estudiantes:
         cursos = obtener_cursos_estudiante(db, estudiante.id)
         
-        # Obtener info del docente
+   
         docente_info = None
         if estudiante.docente:
             if estudiante.docente.usuario:
@@ -119,9 +113,7 @@ def listar_hijos_con_cursos(
     return result
 
 
-# ============================================================
-# 2. CRUD PADRES (POST y GET lista)
-# ============================================================
+
 @router.post("/", response_model=PadreResponse)
 def crear_padre_route(padre: PadreCreate, db: Session = Depends(get_db)):
     return crear_padre(db, padre)
@@ -132,9 +124,7 @@ def listar_padres_route(skip: int = 0, limit: int = 100, db: Session = Depends(g
     return obtener_padres(db, skip, limit)
 
 
-# ============================================================
-# 3. 🔥 MI-PERFIL (DEBE IR ANTES DE /{padre_id})
-# ============================================================
+
 
 @router.get("/mi-perfil-debug")
 def obtener_mi_perfil_debug(
@@ -181,7 +171,7 @@ def obtener_mi_perfil(
     Retorna datos del Usuario y del Padre.
     """
     
-    # Buscar el padre asociado al usuario actual
+   
     padre = db.query(Padre).filter(
         Padre.usuario_id == usuario_actual.id,
         Padre.activo == True
@@ -193,7 +183,7 @@ def obtener_mi_perfil(
             detail="No se encontró el perfil de padre para este usuario."
         )
     
-    # Construir respuesta con datos de Usuario y Padre
+    
     return {
         "id": padre.id,
         "nombre": usuario_actual.nombre,
@@ -219,7 +209,7 @@ def actualizar_mi_perfil(
     - Contraseña (opcional - solo si proporciona password_actual)
     """
     
-    # 1. Buscar el padre asociado al usuario actual
+ 
     padre = db.query(Padre).filter(
         Padre.usuario_id == usuario_actual.id,
         Padre.activo == True
@@ -231,7 +221,7 @@ def actualizar_mi_perfil(
             detail="No se encontró el perfil de padre."
         )
     
-    # 2. Buscar el usuario en la base de datos
+   
     usuario = db.query(Usuario).filter(Usuario.id == usuario_actual.id).first()
     
     if not usuario:
@@ -240,7 +230,7 @@ def actualizar_mi_perfil(
             detail="No se encontró el usuario."
         )
     
-    # 3. VALIDAR EMAIL ÚNICO (si cambió)
+
     if datos.email != usuario.email:
         email_existente = db.query(Usuario).filter(
             Usuario.email == datos.email,
@@ -253,36 +243,36 @@ def actualizar_mi_perfil(
                 detail="El email ya está en uso por otro usuario."
             )
     
-    # 4. CAMBIAR CONTRASEÑA (si se proporcionó)
+
     if datos.password_actual and datos.password:
-        # Verificar contraseña actual
+       
         if not pwd_context.verify(datos.password_actual, usuario.password_hash):
             raise HTTPException(
                 status_code=400,
                 detail="La contraseña actual es incorrecta."
             )
         
-        # Validar longitud de nueva contraseña
+        
         if len(datos.password) < 6:
             raise HTTPException(
                 status_code=400,
                 detail="La nueva contraseña debe tener al menos 6 caracteres."
             )
         
-        # Hashear y actualizar contraseña
+  
         usuario.password_hash = pwd_context.hash(datos.password)
     
-    # 5. ACTUALIZAR DATOS EN TABLA USUARIO
+  
     usuario.nombre = datos.nombre
     usuario.apellido = datos.apellido
     usuario.email = datos.email
     usuario.fecha_actualizacion = func.now()
     
-    # 6. ACTUALIZAR DATOS EN TABLA PADRE
+   
     if datos.telefono_contacto is not None:
         padre.telefono_contacto = datos.telefono_contacto
     
-    # 7. GUARDAR CAMBIOS
+  
     try:
         db.commit()
         db.refresh(usuario)
@@ -294,7 +284,7 @@ def actualizar_mi_perfil(
             detail=f"Error al guardar los cambios: {str(e)}"
         )
     
-    # 8. RETORNAR DATOS ACTUALIZADOS
+
     return {
         "id": padre.id,
         "nombre": usuario.nombre,
@@ -306,9 +296,7 @@ def actualizar_mi_perfil(
     }
 
 
-# ============================================================
-# 4. OBTENER PADRE POR ID (DEBE IR DESPUÉS DE /mi-perfil)
-# ============================================================
+
 @router.get("/{padre_id}", response_model=PadreResponse)
 def obtener_padre_route(padre_id: int, db: Session = Depends(get_db)):
     db_padre = obtener_padre_service(db, padre_id)
@@ -317,9 +305,7 @@ def obtener_padre_route(padre_id: int, db: Session = Depends(get_db)):
     return db_padre
 
 
-# ============================================================
-# 5. VINCULAR HIJO (MEJORADO CON REACTIVACIÓN)
-# ============================================================
+
 @router.post("/vincular-hijo", response_model=dict)
 def vincular_hijo(
     data: VincularHijoRequest,
@@ -335,7 +321,7 @@ def vincular_hijo(
     if not padre:
         raise HTTPException(status_code=400, detail="No existe registro de padre.")
 
-    # Buscar estudiante por nombre, apellido y fecha de nacimiento
+   
     estudiante = (
         db.query(Estudiante)
         .filter(
@@ -352,7 +338,7 @@ def vincular_hijo(
             detail="No se encontró un estudiante con esos datos. Verifica con el docente."
         )
 
-    # ✅ Verificar si ya está vinculado a este padre
+    
     if estudiante.padre_id == padre.id:
         if estudiante.activo:
             raise HTTPException(
@@ -360,21 +346,21 @@ def vincular_hijo(
                 detail="Este hijo ya está vinculado a tu cuenta."
             )
         else:
-            # REACTIVAR si estaba inactivo
+          
             estudiante.activo = True
             estudiante.deleted_at = None
             db.commit()
             db.refresh(estudiante)
             return {"mensaje": "Hijo revinculado exitosamente. ¡Bienvenido de vuelta! 🎉"}
     
-    # ✅ Verificar si está vinculado a otro padre
+
     if estudiante.padre_id is not None and estudiante.padre_id != padre.id:
         raise HTTPException(
             status_code=400, 
             detail="Este estudiante ya tiene un padre asignado."
         )
 
-    # ✅ VINCULAR por primera vez
+    
     estudiante.padre_id = padre.id
     estudiante.activo = True
     estudiante.deleted_at = None
@@ -384,9 +370,7 @@ def vincular_hijo(
     return {"mensaje": "Hijo vinculado correctamente. ¡Éxito! 🎉"}
 
 
-# ============================================================
-# 6. DESVINCULAR HIJO (SOFT DELETE)
-# ============================================================
+
 @router.delete("/desvincular-hijo/{estudiante_id}", response_model=dict)
 def desvincular_hijo(
     estudiante_id: int,
@@ -406,7 +390,7 @@ def desvincular_hijo(
             detail="No se encontró el perfil de padre."
         )
     
-    # Buscar el estudiante
+   
     estudiante = (
         db.query(Estudiante)
         .filter(
@@ -423,7 +407,7 @@ def desvincular_hijo(
             detail="No se encontró el hijo o ya fue desvinculado."
         )
     
-    # ✅ SOFT DELETE
+   
     estudiante.activo = False
     estudiante.deleted_at = func.now()
     db.commit()
@@ -437,9 +421,7 @@ def desvincular_hijo(
     }
 
 
-# ============================================================
-# 7. LECTURAS DEL HIJO (ACTUALIZADO CON CAMPO COMPLETADA)
-# ============================================================
+
 @router.get("/hijos/{hijo_id}/lecturas")
 def obtener_lecturas_hijo(
     hijo_id: int,
@@ -448,7 +430,7 @@ def obtener_lecturas_hijo(
 ):
     """
     Obtiene las lecturas y actividades disponibles para un hijo específico.
-    ✅ ACTUALIZADO: Marca como completadas las lecturas que tienen evaluación.
+    ACTUALIZADO: Marca como completadas las lecturas que tienen evaluación.
     """
     padre = db.query(Padre).filter(Padre.usuario_id == usuario_actual.id).first()
     
@@ -463,36 +445,35 @@ def obtener_lecturas_hijo(
     if not estudiante:
         raise HTTPException(status_code=404, detail="El estudiante no existe.")
 
-    # ✅ Validar que sea hijo del padre actual
+ 
     if estudiante.padre_id != padre.id:
         raise HTTPException(
             status_code=403, 
             detail="No tienes permiso para ver las lecturas de este estudiante."
         )
     
-    # ✅ Validar que el hijo esté activo
+  
     if not estudiante.activo:
         raise HTTPException(
             status_code=403,
             detail="Este hijo está desvinculado. Revíncúlalo para ver sus lecturas."
         )
 
-    # 🔥 OBTENER EVALUACIONES DEL ESTUDIANTE CON UMBRAL DE APROBACIÓN
-    # Solo se consideran completadas las lecturas con precision_palabras >= 70%
+ 
     UMBRAL_APROBACION = 70.0  # Puedes cambiar este valor (60, 70, 80, etc.)
     
     evaluaciones = (
         db.query(EvaluacionLectura.contenido_id)
         .filter(
             EvaluacionLectura.estudiante_id == hijo_id,
-            EvaluacionLectura.precision_palabras.isnot(None),  # ✅ EXCLUIR NULL
-            EvaluacionLectura.precision_palabras >= UMBRAL_APROBACION  # ✅ VALIDACIÓN DE UMBRAL
+            EvaluacionLectura.precision_palabras.isnot(None),  
+            EvaluacionLectura.precision_palabras >= UMBRAL_APROBACION 
         )
         .distinct()
         .all()
     )
     
-    # Crear set de IDs de lecturas completadas (solo las que superaron el umbral)
+ 
     lecturas_completadas_ids = {ev.contenido_id for ev in evaluaciones}
 
     cursos = obtener_cursos_estudiante(db, hijo_id)
@@ -522,13 +503,13 @@ def obtener_lecturas_hijo(
                 .all()
             )
 
-            # 🔥 OBTENER EL MEJOR PUNTAJE DE LA LECTURA (si la practicó)
+           
             mejor_evaluacion = (
                 db.query(EvaluacionLectura)
                 .filter(
                     EvaluacionLectura.estudiante_id == hijo_id,
                     EvaluacionLectura.contenido_id == lectura.id,
-                    EvaluacionLectura.precision_palabras.isnot(None)  # ✅ EXCLUIR NULL
+                    EvaluacionLectura.precision_palabras.isnot(None)  
                 )
                 .order_by(EvaluacionLectura.precision_palabras.desc())
                 .first()
@@ -537,7 +518,7 @@ def obtener_lecturas_hijo(
             mejor_puntaje = mejor_evaluacion.precision_palabras if mejor_evaluacion else None
             esta_completada = lectura.id in lecturas_completadas_ids
             
-            # 🔥 AGREGAR CAMPO COMPLETADA Y PUNTAJE
+          
             lecturas_finales.append(
                 {
                     "id": lectura.id,
@@ -546,9 +527,9 @@ def obtener_lecturas_hijo(
                     "curso": curso.nombre,
                     "nivel_dificultad": lectura.nivel_dificultad,
                     "edad_recomendada": lectura.edad_recomendada,
-                    "completada": esta_completada,  # ✅ Solo true si puntaje >= 70
-                    "mejor_puntaje": mejor_puntaje,  # ✅ NUEVO: Muestra el mejor puntaje obtenido
-                    "umbral_aprobacion": UMBRAL_APROBACION,  # ✅ NUEVO: Para mostrar en frontend
+                    "completada": esta_completada,  
+                    "mejor_puntaje": mejor_puntaje,  
+                    "umbral_aprobacion": UMBRAL_APROBACION,  
                     "actividades": [
                         {
                             "id": act.id,
@@ -567,9 +548,7 @@ def obtener_lecturas_hijo(
     return lecturas_finales
 
 
-# ============================================================
-# 8. OBTENER PROGRESO DEL HIJO
-# ============================================================
+
 @router.get("/hijo/{estudiante_id}/progreso")
 def obtener_progreso_hijo(
     estudiante_id: int,
@@ -588,7 +567,7 @@ def obtener_progreso_hijo(
             detail="No se encontró el perfil de padre."
         )
     
-    # Verificar que el estudiante esté vinculado y activo
+   
     estudiante = (
         db.query(Estudiante)
         .filter(
@@ -605,7 +584,7 @@ def obtener_progreso_hijo(
             detail="No tienes permiso para ver el progreso de este estudiante o está desvinculado."
         )
     
-    # TODO: Implementar lógica de progreso real
+
     
     return {
         "estudiante_id": estudiante.id,

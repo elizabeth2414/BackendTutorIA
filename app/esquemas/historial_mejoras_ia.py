@@ -3,9 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
-# =========================
-# BASE
-# =========================
+
 class HistorialMejorasIABase(BaseModel):
     estudiante_id: int
     palabra: Optional[str] = None
@@ -15,16 +13,12 @@ class HistorialMejorasIABase(BaseModel):
     precision_despues: Optional[float] = None
 
 
-# =========================
-# CREATE
-# =========================
+
 class HistorialMejorasIACreate(HistorialMejorasIABase):
     pass
 
 
-# =========================
-# RESPONSE
-# =========================
+
 class HistorialMejorasIAResponse(HistorialMejorasIABase):
     id: int
     fecha: datetime

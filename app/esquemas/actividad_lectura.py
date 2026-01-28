@@ -1,4 +1,4 @@
-# app/esquemas/actividad_lectura.py
+
 
 from typing import Optional, Any
 from datetime import datetime

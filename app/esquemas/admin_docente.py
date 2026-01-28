@@ -8,3 +8,4 @@ class AdminCrearDocente(BaseModel):
     password: str
     especialidad: Optional[str] = None
     institucion: Optional[str] = None
+

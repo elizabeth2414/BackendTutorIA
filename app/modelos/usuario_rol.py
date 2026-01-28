@@ -13,7 +13,7 @@ class UsuarioRol(Base):
     fecha_expiracion = Column(DateTime(timezone=True), nullable=True)
     activo = Column(Boolean, default=True)
     
-    usuario = relationship("Usuario")
+    usuario = relationship("Usuario", back_populates="roles")
     
     __table_args__ = (
         CheckConstraint("rol IN ('estudiante', 'docente', 'padre', 'admin')", name='check_rol_valido'),

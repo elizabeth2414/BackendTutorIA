@@ -3,9 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
-# =========================
-# BASE
-# =========================
+
 class HistorialPracticaPronunciacionBase(BaseModel):
     estudiante_id: int
     ejercicio_id: int
@@ -20,18 +18,14 @@ class HistorialPracticaPronunciacionBase(BaseModel):
     retroalimentacion_ia: Optional[str] = None
 
 
-# =========================
-# CREATE
-# =========================
+
 class HistorialPracticaPronunciacionCreate(
     HistorialPracticaPronunciacionBase
 ):
     pass
 
 
-# =========================
-# RESPONSE
-# =========================
+
 class HistorialPracticaPronunciacionResponse(
     HistorialPracticaPronunciacionBase
 ):

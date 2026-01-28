@@ -1,5 +1,3 @@
-# app/servicios/seguridad.py
-
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -13,14 +11,16 @@ from app import settings
 from app.config import get_db
 from app.modelos import Usuario, UsuarioRol, Docente 
 
+from app.logs.logger import logger
+from typing import List
+
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-# ==============================
-# HASH / VERIFICACIÓN DE PASSWORD
-# ==============================
+
 
 def verificar_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
@@ -35,9 +35,7 @@ def get_password_hash(password: str) -> str:
     return obtener_password_hash(password)
 
 
-# ==============================
-# MANEJO DE TOKENS JWT
-# ==============================
+
 
 def crear_token_acceso(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -68,9 +66,7 @@ def verificar_token_acceso(token: str):
         return None
 
 
-# ==============================
-# OBTENER USUARIO ACTUAL
-# ==============================
+
 
 async def obtener_usuario_actual(
     token: str = Depends(oauth2_scheme),
@@ -105,7 +101,7 @@ async def obtener_usuario_actual(
     if usuario is None:
         raise credentials_exception
 
-    # ✅ VALIDACIÓN 1: Usuario NO eliminado
+
     if usuario.deleted_at is not None:
         from app.logs.logger import logger
         logger.warning(f"⚠️ Intento de acceso con token de usuario eliminado: {email}")
@@ -114,7 +110,7 @@ async def obtener_usuario_actual(
             detail="Tu cuenta ha sido deshabilitada. Contacta al administrador."
         )
 
-    # ✅ VALIDACIÓN 2: Usuario activo
+   
     if not usuario.activo:
         from app.logs.logger import logger
         logger.warning(f"⚠️ Intento de acceso con token de usuario inactivo: {email}")
@@ -123,7 +119,7 @@ async def obtener_usuario_actual(
             detail="Tu cuenta está inactiva. Contacta al administrador."
         )
 
-    # ✅ VALIDACIÓN 3: Usuario no bloqueado
+   
     if getattr(usuario, "bloqueado", False):
         from app.logs.logger import logger
         logger.warning(f"⚠️ Intento de acceso con token de usuario bloqueado: {email}")
@@ -134,13 +130,6 @@ async def obtener_usuario_actual(
 
     return usuario
 
-
-# ==============================
-# VALIDACIÓN DE ROLES
-# ==============================
-
-from app.logs.logger import logger
-from typing import List
 
 
 def verificar_rol(
@@ -200,9 +189,7 @@ def obtener_roles_usuario(
     return [rol[0] for rol in roles]
 
 
-# ==============================
-# DEPENDENCIES DE VALIDACIÓN DE ROLES
-# ==============================
+
 
 def requiere_admin(
     usuario: Usuario = Depends(obtener_usuario_actual),
@@ -215,14 +202,14 @@ def requiere_admin(
 
     if not tiene_rol:
         logger.warning(
-            f"⚠️ Acceso denegado: {usuario.email} intentó acceder a endpoint admin sin permisos"
+            f"Acceso denegado: {usuario.email} intentó acceder a endpoint admin sin permisos"
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso denegado: se requiere rol de administrador"
         )
 
-    logger.debug(f"✅ Acceso admin autorizado: {usuario.email}")
+    logger.debug(f"Acceso admin autorizado: {usuario.email}")
     return usuario
 
 
@@ -241,39 +228,39 @@ def requiere_docente(
 
     if not tiene_rol:
         logger.warning(
-            f"⚠️ Acceso denegado: {usuario.email} intentó acceder a endpoint docente sin permisos"
+            f"Acceso denegado: {usuario.email} intentó acceder a endpoint docente sin permisos"
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso denegado: se requiere rol de docente"
         )
 
-    # ✅ VALIDACIÓN EXTRA: Verificar que el docente NO esté eliminado
+    
     docente = db.query(Docente).filter(
         Docente.usuario_id == usuario.id,
-        Docente.deleted_at.is_(None)  # ← Solo docentes NO eliminados
+        Docente.deleted_at.is_(None)  
     ).first()
     
     if not docente:
         logger.warning(
-            f"⚠️ Acceso denegado: {usuario.email} tiene rol docente pero está eliminado o sin registro"
+            f" Acceso denegado: {usuario.email} tiene rol docente pero está eliminado o sin registro"
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tu cuenta de docente está deshabilitada. Contacta al administrador."
         )
 
-    # ✅ VALIDACIÓN EXTRA: Verificar que el docente esté activo
+    
     if not docente.activo:
         logger.warning(
-            f"⚠️ Acceso denegado: {usuario.email} tiene docente inactivo"
+            f" Acceso denegado: {usuario.email} tiene docente inactivo"
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tu cuenta de docente está inactiva. Contacta al administrador."
         )
 
-    logger.debug(f"✅ Acceso docente autorizado: {usuario.email}")
+    logger.debug(f" Acceso docente autorizado: {usuario.email}")
     return usuario
 
 
@@ -288,14 +275,14 @@ def requiere_estudiante(
 
     if not tiene_rol:
         logger.warning(
-            f"⚠️ Acceso denegado: {usuario.email} intentó acceder a endpoint estudiante sin permisos"
+            f"Acceso denegado: {usuario.email} intentó acceder a endpoint estudiante sin permisos"
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso denegado: se requiere rol de estudiante"
         )
 
-    logger.debug(f"✅ Acceso estudiante autorizado: {usuario.email}")
+    logger.debug(f"Acceso estudiante autorizado: {usuario.email}")
     return usuario
 
 
@@ -310,14 +297,14 @@ def requiere_padre(
 
     if not tiene_rol:
         logger.warning(
-            f"⚠️ Acceso denegado: {usuario.email} intentó acceder a endpoint padre sin permisos"
+            f"Acceso denegado: {usuario.email} intentó acceder a endpoint padre sin permisos"
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso denegado: se requiere rol de padre/tutor"
         )
 
-    logger.debug(f"✅ Acceso padre autorizado: {usuario.email}")
+    logger.debug(f"Acceso padre autorizado: {usuario.email}")
     return usuario
 
 
@@ -340,7 +327,7 @@ def requiere_cualquier_rol(*roles_permitidos: str):
         if not tiene_acceso:
             roles_str = ", ".join(roles_permitidos)
             logger.warning(
-                f"⚠️ Acceso denegado: {usuario.email} intentó acceder sin roles requeridos. "
+                f" Acceso denegado: {usuario.email} intentó acceder sin roles requeridos. "
                 f"Tiene: {roles_usuario}, Necesita: [{roles_str}]"
             )
             raise HTTPException(
@@ -348,7 +335,7 @@ def requiere_cualquier_rol(*roles_permitidos: str):
                 detail=f"Acceso denegado: se requiere uno de los siguientes roles: {roles_str}"
             )
 
-        logger.debug(f"✅ Acceso autorizado: {usuario.email} con roles {roles_usuario}")
+        logger.debug(f"Acceso autorizado: {usuario.email} con roles {roles_usuario}")
         return usuario
 
     return dependency
@@ -374,7 +361,7 @@ def requiere_todos_los_roles(*roles_requeridos: str):
             roles_str = ", ".join(roles_requeridos)
             faltantes = [r for r in roles_requeridos_lower if r not in roles_usuario]
             logger.warning(
-                f"⚠️ Acceso denegado: {usuario.email} no tiene todos los roles requeridos. "
+                f"Acceso denegado: {usuario.email} no tiene todos los roles requeridos. "
                 f"Tiene: {roles_usuario}, Faltan: {faltantes}"
             )
             raise HTTPException(
@@ -382,7 +369,7 @@ def requiere_todos_los_roles(*roles_requeridos: str):
                 detail=f"Acceso denegado: se requieren TODOS los siguientes roles: {roles_str}"
             )
 
-        logger.debug(f"✅ Acceso autorizado: {usuario.email} tiene todos los roles requeridos")
+        logger.debug(f" Acceso autorizado: {usuario.email} tiene todos los roles requeridos")
         return usuario
 
     return dependency
@@ -436,15 +423,15 @@ def obtener_docente_actual(
     """
     docente = db.query(Docente).filter(
         Docente.usuario_id == usuario.id,
-        Docente.deleted_at.is_(None)  # ← Por seguridad adicional
+        Docente.deleted_at.is_(None)  
     ).first()
     
     if not docente:
-        logger.error(f"❌ Usuario {usuario.email} tiene rol docente pero no registro en tabla docente")
+        logger.error(f" Usuario {usuario.email} tiene rol docente pero no registro en tabla docente")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error: usuario docente sin registro asociado"
         )
     
-    logger.debug(f"✅ Docente obtenido: id={docente.id}, usuario_id={docente.usuario_id}")
+    logger.debug(f" Docente obtenido: id={docente.id}, usuario_id={docente.usuario_id}")
     return docente

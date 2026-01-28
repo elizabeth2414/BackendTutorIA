@@ -4,9 +4,7 @@ from typing import List, Optional
 
 from app.config import get_db
 
-# -----------------------------
-# IMPORTS CORREGIDOS
-# -----------------------------
+
 from app.esquemas.curso import (
     CursoCreate,
     CursoResponse,
@@ -21,11 +19,11 @@ from app.esquemas.estudiante_curso import (
 from app.servicios.curso import (
     crear_curso,
     obtener_cursos,
-    obtener_cursos_activos,  # ← NUEVO
+    obtener_cursos_activos, 
     obtener_curso,
     actualizar_curso as actualizar_curso_service,
     eliminar_curso as eliminar_curso_service,
-    toggle_curso_activo,  # ← NUEVO
+    toggle_curso_activo, 
     inscribir_estudiante,
     obtener_estudiantes_curso,
     obtener_cursos_estudiante,
@@ -37,9 +35,7 @@ from app.modelos import Usuario, Docente
 router = APIRouter(prefix="/cursos", tags=["Cursos"])
 
 
-# ================================================================
-#   CREAR CURSO
-# ================================================================
+
 @router.post("/", response_model=CursoResponse)
 def crear_nuevo_curso(
     curso: CursoCreate,
@@ -49,14 +45,14 @@ def crear_nuevo_curso(
     """
     Crea un nuevo curso con código de acceso autogenerado.
     """
-    # Buscar el docente asociado al usuario
+    
     docente = (
         db.query(Docente)
         .filter(Docente.usuario_id == usuario_actual.id)
         .first()
     )
 
-    # Si no existe docente, crearlo
+   
     if not docente:
         docente = Docente(
             usuario_id=usuario_actual.id,
@@ -66,15 +62,13 @@ def crear_nuevo_curso(
         db.commit()
         db.refresh(docente)
 
-    # Asignar docente_id automáticamente
+   
     curso.docente_id = docente.id
 
     return crear_curso(db, curso)
 
 
-# ================================================================
-#   LISTAR CURSOS (Todos - activos e inactivos)
-# ================================================================
+
 @router.get("/", response_model=List[CursoResponse])
 def listar_cursos(
     skip: int = 0,
@@ -88,7 +82,7 @@ def listar_cursos(
     Lista todos los cursos (activos e inactivos).
     Para admin: lista de gestión.
     """
-    # Si no se envía docente_id, usar el docente del usuario logueado
+   
     if docente_id is None:
         docente = (
             db.query(Docente)
@@ -108,9 +102,7 @@ def listar_cursos(
     )
 
 
-# ================================================================
-#   LISTAR SOLO CURSOS ACTIVOS (Para combobox)
-# ================================================================
+
 @router.get("/activos", response_model=List[CursoResponse])
 def listar_cursos_activos(
     docente_id: Optional[int] = None,
@@ -121,7 +113,7 @@ def listar_cursos_activos(
     Lista SOLO cursos activos.
     Úsala en combobox, selects, asignaciones, etc.
     """
-    # Si no se envía docente_id, usar el docente del usuario logueado
+  
     if docente_id is None:
         docente = (
             db.query(Docente)
@@ -134,9 +126,7 @@ def listar_cursos_activos(
     return obtener_cursos_activos(db, docente_id)
 
 
-# ================================================================
-#   OBTENER CURSO POR ID
-# ================================================================
+
 @router.get("/{curso_id}", response_model=CursoResponse)
 def obtener_curso_por_id(
     curso_id: int,
@@ -150,9 +140,7 @@ def obtener_curso_por_id(
     return curso
 
 
-# ================================================================
-#   ACTUALIZAR CURSO
-# ================================================================
+
 @router.put("/{curso_id}", response_model=CursoResponse)
 def actualizar_curso_router(
     curso_id: int,
@@ -164,9 +152,7 @@ def actualizar_curso_router(
     return actualizar_curso_service(db, curso_id, datos)
 
 
-# ================================================================
-#   TOGGLE ACTIVO/INACTIVO
-# ================================================================
+
 @router.patch("/{curso_id}/toggle", response_model=CursoResponse)
 def toggle_curso_router(
     curso_id: int,
@@ -180,9 +166,7 @@ def toggle_curso_router(
     return toggle_curso_activo(db, curso_id)
 
 
-# ================================================================
-#   ELIMINAR CURSO (Con validación de relaciones)
-# ================================================================
+
 @router.delete("/{curso_id}")
 def eliminar_curso_router(
     curso_id: int,
@@ -197,9 +181,7 @@ def eliminar_curso_router(
     return resultado
 
 
-# ================================================================
-#   INSCRIBIR ESTUDIANTE A UN CURSO
-# ================================================================
+
 @router.post("/{curso_id}/inscribir", response_model=EstudianteCursoResponse)
 def inscribir_estudiante_curso(
     curso_id: int,
@@ -214,9 +196,7 @@ def inscribir_estudiante_curso(
     return inscribir_estudiante(db, curso_id, inscripcion.estudiante_id)
 
 
-# ================================================================
-#   LISTAR ESTUDIANTES DE UN CURSO
-# ================================================================
+
 @router.get("/{curso_id}/estudiantes", response_model=List[EstudianteCursoResponse])
 def listar_estudiantes_curso(
     curso_id: int,
@@ -227,9 +207,7 @@ def listar_estudiantes_curso(
     return obtener_estudiantes_curso(db, curso_id)
 
 
-# ================================================================
-#   LISTAR CURSOS DE UN ESTUDIANTE
-# ================================================================
+
 @router.get("/estudiante/{estudiante_id}", response_model=List[CursoResponse])
 def listar_cursos_estudiante(
     estudiante_id: int,

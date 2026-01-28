@@ -12,7 +12,8 @@ from app.esquemas.auth import (
     UsuarioResponse,
     CambioPassword,
     ResetPasswordRequest,
-    ResetPasswordConfirm
+    ResetPasswordConfirm,
+    ConfigurarCuentaRequest
 )
 
 from app.servicios.auth import (
@@ -21,8 +22,9 @@ from app.servicios.auth import (
     cambiar_password,
     resetear_password,
     confirmar_reset_password,
-    verificar_email,          # ✅ NUEVO
-    reenviar_verificacion     # ✅ NUEVO
+    verificar_email,          
+    reenviar_verificacion  ,
+    configurar_cuenta_docente   
 )
 
 from app.servicios.seguridad import (
@@ -31,36 +33,32 @@ from app.servicios.seguridad import (
     asignar_rol
 )
 
+from app.servicios.usuario_builder import build_usuario_response
+
+
 router = APIRouter(prefix="/auth", tags=["autenticacion"])
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-# ============================
-# SCHEMA NUEVO (si no lo tienes en esquemas)
-# ============================
+
 class ReenviarVerificacionRequest(BaseModel):
     email: EmailStr
 
 
-# ============================
-# REGISTRO
-# ============================
+
 @router.post("/registro", response_model=UsuarioResponse)
 def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     return crear_usuario(db, usuario)
 
 
-# ============================
-# LOGIN
-# ============================
+
 @router.post("/login", response_model=Token)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    # ⚠️ OJO: autenticar_usuario ahora puede lanzar HTTPException 403
-    # si el email no está verificado. Eso está bien: FastAPI lo devolverá.
+    # autenticar_usuario ahora puede lanzar HTTPException 403
     usuario = autenticar_usuario(db, form_data.username, form_data.password)
 
     if not usuario:
@@ -83,10 +81,7 @@ def login(
     }
 
 
-# ============================
-# VERIFICAR EMAIL (NUEVO)
-# Link típico: /auth/verificar-email?token=xxxxx
-# ============================
+
 @router.get("/verificar-email")
 def verificar_email_endpoint(
     token: str = Query(..., min_length=10),
@@ -95,9 +90,7 @@ def verificar_email_endpoint(
     return verificar_email(db, token)
 
 
-# ============================
-# REENVIAR VERIFICACIÓN (NUEVO)
-# ============================
+
 @router.post("/reenviar-verificacion")
 def reenviar_verificacion_endpoint(
     request: ReenviarVerificacionRequest,
@@ -106,9 +99,7 @@ def reenviar_verificacion_endpoint(
     return reenviar_verificacion(db, request.email)
 
 
-# ============================
-# CAMBIO PASSWORD
-# ============================
+
 @router.post("/cambio-password")
 def cambio_password_endpoint(
     cambio: CambioPassword,
@@ -118,9 +109,7 @@ def cambio_password_endpoint(
     return cambiar_password(db, usuario_actual.id, cambio)
 
 
-# ============================
-# RESET PASSWORD
-# ============================
+
 @router.post("/reset-password")
 def reset_password(
     request: ResetPasswordRequest,
@@ -148,9 +137,7 @@ def confirm_reset_password_endpoint(
     return confirmar_reset_password(db, request.token, request.nuevo_password)
 
 
-# ============================
-# USUARIO ACTUAL
-# ============================
+
 @router.get("/me", response_model=UsuarioResponse)
 def me(
     db: Session = Depends(get_db),
@@ -180,19 +167,17 @@ def me(
     )
 
 
-# ============================
-# REGISTRO PADRE
-# ============================
+
 @router.post("/registro-padre", response_model=UsuarioResponse)
 def registro_padre(datos: UsuarioCreate, db: Session = Depends(get_db)):
-    # 1) Si ya existe usuario, NO crearlo de nuevo
+ 
     usuario = db.query(Usuario).filter(Usuario.email == datos.email).first()
 
     if usuario:
-        # asignar rol padre (si tu asignar_rol ya evita duplicados, perfecto)
+      
         asignar_rol(db, usuario.id, "padre")
 
-        # crear Padre solo si no existe
+    
         padre = db.query(Padre).filter(Padre.usuario_id == usuario.id).first()
         if not padre:
             padre = Padre(
@@ -204,9 +189,8 @@ def registro_padre(datos: UsuarioCreate, db: Session = Depends(get_db)):
             db.commit()
             db.refresh(padre)
 
-        return usuario
+        return build_usuario_response(db, usuario)
 
-    # 2) Si no existe, crear y luego lo normal
     nuevo_usuario = crear_usuario(db, datos)
     asignar_rol(db, nuevo_usuario.id, "padre")
 
@@ -219,28 +203,29 @@ def registro_padre(datos: UsuarioCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nuevo_padre)
 
-    return nuevo_usuario
+    return build_usuario_response(db, nuevo_usuario)
 
 
-# ✅ CAMBIO ÚNICO: esta ruta ya no se llama igual que la de token
+
 @router.get("/verificar-email-disponible")
-async def verificar_email_disponible(
-    email: str,
+def verificar_email_disponible(
+    email: EmailStr,
     db: Session = Depends(get_db)
 ):
-    """
-    Verifica si un email ya está registrado en la base de datos.
-    Retorna: { "disponible": true/false }
-    """
-    usuario_existe = db.query(Usuario).filter(Usuario.email == email).first()
+    email_norm = email.strip().lower()
 
-    if usuario_existe:
-        return {
-            "disponible": False,
-            "mensaje": "Este correo electrónico ya está registrado"
-        }
+    usuario_existe = db.query(Usuario).filter(
+        Usuario.email.ilike(email_norm)
+    ).first()
 
     return {
-        "disponible": True,
-        "mensaje": "Correo disponible"
+        "disponible": not bool(usuario_existe),
+        "mensaje": "Correo disponible" if not usuario_existe else "Este correo electrónico ya está registrado"
     }
+
+@router.post("/configurar-cuenta")
+def configurar_cuenta_endpoint(
+    request: ConfigurarCuentaRequest,
+    db: Session = Depends(get_db)
+):
+    return configurar_cuenta_docente(db, request.token, request.nuevo_password)

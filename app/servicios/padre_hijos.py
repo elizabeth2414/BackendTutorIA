@@ -1,4 +1,3 @@
-# app/servicios/padre_hijos.py
 from typing import List
 from sqlalchemy.orm import Session
 

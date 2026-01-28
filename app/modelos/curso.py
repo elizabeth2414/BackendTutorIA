@@ -7,7 +7,7 @@ class Curso(Base):
     __tablename__ = 'curso'
     
     id = Column(BigInteger, primary_key=True, index=True)
-    docente_id = Column(BigInteger, ForeignKey('docente.id', ondelete='CASCADE'), nullable=False)
+    docente_id = Column(BigInteger, ForeignKey('docente.id', ondelete='RESTRICT'), nullable=False)
     nombre = Column(String(200), nullable=False)
     descripcion = Column(Text)
     nivel = Column(Integer, nullable=False)

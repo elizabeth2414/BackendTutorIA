@@ -14,16 +14,14 @@ router = APIRouter(
 )
 
 
-# =========================================================
-# ESTUDIANTE: ver sus prácticas
-# =========================================================
+
 @router.get("/mis")
 def obtener_mis_practicas(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(obtener_usuario_actual)
 ):
     """
-    ✅ ACTUALIZADO: Consulta ejercicio_practica en lugar de historial_practica_pronunciacion
+    ACTUALIZADO: Consulta ejercicio_practica en lugar de historial_practica_pronunciacion
     """
     estudiante = (
         db.query(Estudiante)
@@ -34,18 +32,18 @@ def obtener_mis_practicas(
     if not estudiante:
         raise HTTPException(404, "Estudiante no encontrado")
 
-    # 🔥 CONSULTAR EJERCICIOS REALES
+   
     ejercicios = (
         db.query(EjercicioPractica)
         .filter(EjercicioPractica.estudiante_id == estudiante.id)
-        .order_by(EjercicioPractica.fecha_creacion.desc())  # ✅ CAMPO CORRECTO
+        .order_by(EjercicioPractica.fecha_creacion.desc())  
         .all()
     )
 
-    # Formatear respuesta compatible con el frontend
+  
     historial = []
     for ej in ejercicios:
-        # Manejar palabras_objetivo (puede ser None, lista, o string JSON)
+        
         num_errores = 0
         if ej.palabras_objetivo:
             if isinstance(ej.palabras_objetivo, list):
@@ -63,11 +61,11 @@ def obtener_mis_practicas(
         historial.append({
             "id": ej.id,
             "estudiante_id": ej.estudiante_id,
-            "fecha": ej.fecha_creacion.isoformat() if ej.fecha_creacion else datetime.now().isoformat(),  # ✅ CAMPO CORRECTO
+            "fecha": ej.fecha_creacion.isoformat() if ej.fecha_creacion else datetime.now().isoformat(),  
             "puntuacion": puntuacion,
             "errores_detectados": num_errores,
             "errores_corregidos": 1 if ej.completado else 0,
-            "tiempo_practica": ej.intentos * 60 if ej.intentos else 0,  # Estimado
+            "tiempo_practica": ej.intentos * 60 if ej.intentos else 0,  
             "tipo_ejercicio": ej.tipo_ejercicio or "pronunciacion",
             "completado": ej.completado,
             "intentos": ej.intentos or 0,
@@ -77,9 +75,7 @@ def obtener_mis_practicas(
     return historial
 
 
-# =========================================================
-# PADRE: ver prácticas de un hijo
-# =========================================================
+
 @router.get("/hijo/{estudiante_id}")
 def obtener_practicas_hijo(
     estudiante_id: int,
@@ -87,7 +83,7 @@ def obtener_practicas_hijo(
     usuario_actual: Usuario = Depends(obtener_usuario_actual)
 ):
     """
-    ✅ ACTUALIZADO: Consulta ejercicio_practica en lugar de historial_practica_pronunciacion
+    ACTUALIZADO: Consulta ejercicio_practica en lugar de historial_practica_pronunciacion
     """
     padre = (
         db.query(Padre)
@@ -110,18 +106,18 @@ def obtener_practicas_hijo(
     if not estudiante:
         raise HTTPException(403, "No autorizado")
 
-    # 🔥 CONSULTAR EJERCICIOS REALES
+ 
     ejercicios = (
         db.query(EjercicioPractica)
         .filter(EjercicioPractica.estudiante_id == estudiante.id)
-        .order_by(EjercicioPractica.fecha_creacion.desc())  # ✅ CAMPO CORRECTO
+        .order_by(EjercicioPractica.fecha_creacion.desc()) 
         .all()
     )
 
-    # Formatear respuesta compatible con el frontend
+    
     historial = []
     for ej in ejercicios:
-        # Manejar palabras_objetivo (puede ser None, lista, o string JSON)
+       
         num_errores = 0
         if ej.palabras_objetivo:
             if isinstance(ej.palabras_objetivo, list):
@@ -133,17 +129,17 @@ def obtener_practicas_hijo(
                 except:
                     num_errores = 0
         
-        # Calcular puntuación basada en completado
+       
         puntuacion = 100 if ej.completado else 50
         
         historial.append({
             "id": ej.id,
             "estudiante_id": ej.estudiante_id,
-            "fecha": ej.fecha_creacion.isoformat() if ej.fecha_creacion else datetime.now().isoformat(),  # ✅ CAMPO CORRECTO
+            "fecha": ej.fecha_creacion.isoformat() if ej.fecha_creacion else datetime.now().isoformat(), 
             "puntuacion": puntuacion,
             "errores_detectados": num_errores,
             "errores_corregidos": 1 if ej.completado else 0,
-            "tiempo_practica": ej.intentos * 60 if ej.intentos else 0,  # Estimado
+            "tiempo_practica": ej.intentos * 60 if ej.intentos else 0,  
             "tipo_ejercicio": ej.tipo_ejercicio or "pronunciacion",
             "completado": ej.completado,
             "intentos": ej.intentos or 0,

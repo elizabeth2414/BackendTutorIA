@@ -7,7 +7,7 @@ class Padre(Base):
     __tablename__ = 'padre'
     
     id = Column(BigInteger, primary_key=True, index=True)
-    usuario_id = Column(BigInteger, ForeignKey('usuario.id', ondelete='SET NULL'), unique=True)
+    usuario_id = Column(BigInteger, ForeignKey("usuario.id", ondelete="SET NULL"), unique=True, nullable=True)
     telefono_contacto = Column(String(20))
     parentesco = Column(String(20))
     notificaciones_activas = Column(Boolean, default=True)

@@ -1,4 +1,4 @@
-# app/esquemas/estudiante_curso.py
+
 
 from pydantic import BaseModel
 from typing import Literal

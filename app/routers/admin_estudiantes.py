@@ -11,7 +11,7 @@ router = APIRouter(prefix="/admin", tags=["Admin Estudiantes"])
 @router.get("/estudiantes")
 def listar_estudiantes_admin(
     db: Session = Depends(get_db),
-    admin: Usuario = Depends(requiere_admin)  # ✅ Validación de rol usando dependency
+    admin: Usuario = Depends(requiere_admin)  
 ):
     """
     Lista todos los estudiantes del sistema (vista administrativa).

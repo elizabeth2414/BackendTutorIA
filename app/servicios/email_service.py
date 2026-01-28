@@ -337,6 +337,29 @@ Equipo BookiSmartIA
         subject = "Verifica tu correo - BookiSmartIA"
         return self.send_email(to_email, subject, html_content, text_content)
 
+    def send_setup_account_email(self, to_email: str, usuario_nombre: str, setup_token: str) -> bool:
+        template = self._load_template('email_setup_account.html')
+        setup_url = f"{self.frontend_url}/configurar-cuenta?token={setup_token}"
 
-# Instancia global del servicio
+        html_content = template.replace('{{USUARIO_NOMBRE}}', usuario_nombre)
+        html_content = html_content.replace('{{SETUP_URL}}', setup_url)
+        html_content = html_content.replace('{{TOKEN}}', setup_token)
+        html_content = html_content.replace('{{FRONTEND_URL}}', self.frontend_url)
+
+        text_content = f"""Hola {usuario_nombre},
+
+El administrador creó tu cuenta en BookiSmartIA.
+
+Configura tu cuenta aquí:
+{setup_url}
+
+Token:
+{setup_token}
+
+Este enlace expira en 48 horas.
+""".strip()
+
+        subject = "Configura tu cuenta - BookiSmartIA"
+        return self.send_email(to_email, subject, html_content, text_content)
+
 email_service = EmailService()

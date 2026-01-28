@@ -7,8 +7,8 @@ class EstudianteCurso(Base):
     __tablename__ = 'estudiante_curso'
     
     id = Column(BigInteger, primary_key=True, index=True)
-    estudiante_id = Column(BigInteger, ForeignKey('estudiante.id', ondelete='CASCADE'), nullable=False)
-    curso_id = Column(BigInteger, ForeignKey('curso.id', ondelete='CASCADE'), nullable=False)
+    estudiante_id = Column(BigInteger, ForeignKey('estudiante.id', ondelete='RESTRICT'), nullable=False)
+    curso_id      = Column(BigInteger, ForeignKey('curso.id', ondelete='RESTRICT'), nullable=False)
     fecha_inscripcion = Column(DateTime(timezone=True), server_default=func.now())
     estado = Column(String(20), default='activo')
     

@@ -1,4 +1,4 @@
-# app/esquemas/padre_hijos.py
+
 from typing import List
 from pydantic import BaseModel
 

@@ -1,5 +1,3 @@
-# app/routers/estudiantes.py
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
@@ -18,13 +16,11 @@ from app.servicios.estudiante import (
 from app.servicios.seguridad import obtener_usuario_actual
 from app.modelos import Usuario
 
-# 🚀 PREFIX ORIGINAL — SE MANTIENE
+
 router = APIRouter(prefix="/estudiantes", tags=["estudiantes"])
 
 
-# ============================================================
-#           CREAR ESTUDIANTE (modo general)
-# ============================================================
+
 @router.post("/", response_model=EstudianteResponse)
 def crear_nuevo_estudiante(
     estudiante: EstudianteCreate,
@@ -34,9 +30,7 @@ def crear_nuevo_estudiante(
     return crear_estudiante(db, estudiante)
 
 
-# ============================================================
-#           LISTAR ESTUDIANTES
-# ============================================================
+
 @router.get("/", response_model=List[EstudianteResponse])
 def listar_estudiantes(
     skip: int = 0,
@@ -55,9 +49,7 @@ def listar_estudiantes(
     )
 
 
-# ============================================================
-#           OBTENER ESTUDIANTE POR ID  (CORREGIDO)
-# ============================================================
+
 @router.get("/{estudiante_id:int}", response_model=EstudianteResponse)
 def obtener_estudiante_por_id(
     estudiante_id: int,
@@ -70,9 +62,7 @@ def obtener_estudiante_por_id(
     return db_estudiante
 
 
-# ============================================================
-#           ACTUALIZAR ESTUDIANTE (CORREGIDO)
-# ============================================================
+
 @router.put("/{estudiante_id:int}", response_model=EstudianteResponse)
 def actualizar_estudiante(
     estudiante_id: int,
@@ -83,9 +73,7 @@ def actualizar_estudiante(
     return actualizar_estudiante_service(db, estudiante_id, estudiante)
 
 
-# ============================================================
-#           ELIMINAR ESTUDIANTE (CORREGIDO)
-# ============================================================
+
 @router.delete("/{estudiante_id:int}")
 def eliminar_estudiante(
     estudiante_id: int,
@@ -96,9 +84,7 @@ def eliminar_estudiante(
     return {"mensaje": "Estudiante eliminado correctamente"}
 
 
-# ============================================================
-#           NIVEL DEL ESTUDIANTE (CORREGIDO)
-# ============================================================
+
 @router.get("/{estudiante_id:int}/nivel", response_model=NivelEstudianteResponse)
 def obtener_nivel(
     estudiante_id: int,

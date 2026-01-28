@@ -17,7 +17,7 @@ from .historial_mejoras_ia import (
     HistorialMejorasIAResponse,
 )
 
-# Esquemas base comunes
+
 class ModeloBase(BaseModel):
     class Config:
         from_attributes = True

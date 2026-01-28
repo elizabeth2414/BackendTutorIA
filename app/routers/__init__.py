@@ -1,4 +1,4 @@
-# app/routers/__init__.py
+
 from fastapi import APIRouter
 
 from app.routers import (
@@ -53,7 +53,7 @@ api_router.include_router(admin_dashboard.router)
 api_router.include_router(admin_estudiantes.router)
 api_router.include_router(actividades_estudiante.router)
 
-# 👇 USERS SIEMPRE AL FINAL
+
 api_router.include_router(usuarios.router)
 api_router.include_router(historial_pronunciacion.router)
 api_router.include_router(historial_practica_pronunciacion.router)

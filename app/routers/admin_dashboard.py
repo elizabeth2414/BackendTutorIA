@@ -12,7 +12,7 @@ router = APIRouter(prefix="/admin", tags=["Admin Dashboard"])
 @router.get("/dashboard", response_model=DashboardStats)
 def obtener_dashboard(
     db: Session = Depends(get_db),
-    admin: Usuario = Depends(requiere_admin)  # ✅ Validación de rol usando dependency
+    admin: Usuario = Depends(requiere_admin)  
 ):
     """
     Obtiene estadísticas del dashboard administrativo.

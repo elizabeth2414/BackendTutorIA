@@ -1,6 +1,3 @@
-# app/routers/actividades_estudiante.py
-# ⚠️ ESTE ARCHIVO DEBE SER CREADO EN TU BACKEND
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -18,9 +15,7 @@ from app.servicios.seguridad import obtener_usuario_actual
 router = APIRouter(prefix="/actividades", tags=["actividades-estudiante"])
 
 
-# =====================================================
-# ESQUEMAS PYDANTIC
-# =====================================================
+
 class RespuestaRequest(BaseModel):
     pregunta_id: int
     respuesta_estudiante: str
@@ -30,7 +25,7 @@ class ResponderActividadRequest(BaseModel):
     estudiante_id: int
     actividad_id: int
     respuestas: List[RespuestaRequest]
-    tiempo_total: int  # en segundos
+    tiempo_total: int 
 
 
 class ResponderActividadResponse(BaseModel):
@@ -44,9 +39,7 @@ class ResponderActividadResponse(BaseModel):
     mensaje: str
 
 
-# =====================================================
-# 1️⃣ RESPONDER ACTIVIDAD Y CALIFICAR AUTOMÁTICAMENTE
-# =====================================================
+
 @router.post("/responder", response_model=ResponderActividadResponse)
 def responder_actividad(
     request: ResponderActividadRequest,
@@ -60,7 +53,7 @@ def responder_actividad(
     - Actualiza el progreso
     """
     
-    # 1️⃣ Validar que la actividad exista
+
     actividad = db.query(Actividad).filter(
         Actividad.id == request.actividad_id,
         Actividad.activo == True
@@ -69,7 +62,7 @@ def responder_actividad(
     if not actividad:
         raise HTTPException(status_code=404, detail="Actividad no encontrada")
     
-    # 2️⃣ Validar que el estudiante exista
+    
     estudiante = db.query(Estudiante).filter(
         Estudiante.id == request.estudiante_id
     ).first()
@@ -77,7 +70,7 @@ def responder_actividad(
     if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
-    # 3️⃣ Crear el progreso de la actividad
+  
     progreso = ProgresoActividad(
         estudiante_id=request.estudiante_id,
         actividad_id=request.actividad_id,
@@ -85,12 +78,12 @@ def responder_actividad(
         tiempo_completacion=request.tiempo_total,
         intentos=1,
         errores_cometidos=0,
-        puntuacion=0.0  # Se actualizará después
+        puntuacion=0.0  
     )
     db.add(progreso)
-    db.flush()  # Para obtener el ID
+    db.flush()  
     
-    # 4️⃣ Procesar cada respuesta
+  
     puntos_totales = 0
     puntos_maximos = 0
     correctas = 0
@@ -107,11 +100,11 @@ def responder_actividad(
         
         puntos_maximos += pregunta.puntuacion
         
-        # 🔥 CALIFICAR LA RESPUESTA
+        
         es_correcta = False
         puntos_obtenidos = 0
         
-        # Normalizar respuestas para comparación
+       
         respuesta_estudiante = resp.respuesta_estudiante.strip().lower()
         respuesta_correcta = (pregunta.respuesta_correcta or "").strip().lower()
         
@@ -122,8 +115,8 @@ def responder_actividad(
             es_correcta = respuesta_estudiante == respuesta_correcta
         
         elif pregunta.tipo_respuesta == "texto_libre":
-            # Para texto libre, podemos usar similitud o revisar manualmente
-            # Por ahora, comparación exacta (puede mejorarse con IA)
+       
+
             es_correcta = respuesta_estudiante in respuesta_correcta or respuesta_correcta in respuesta_estudiante
         
         if es_correcta:
@@ -143,21 +136,20 @@ def responder_actividad(
         )
         db.add(respuesta_db)
     
-    # 5️⃣ Actualizar el progreso con los puntos y errores
+  
     progreso.puntuacion = float(puntos_totales)
     progreso.errores_cometidos = incorrectas
     
-    # 6️⃣ Calcular XP para la aventura
-    # XP = puntos obtenidos * 10 (puedes ajustar la fórmula)
+
     xp_ganado = puntos_totales * 10
     
-    # 7️⃣ Sumar XP al estudiante
+
     nivel = db.query(NivelEstudiante).filter(
         NivelEstudiante.estudiante_id == request.estudiante_id
     ).first()
     
     if not nivel:
-        # Crear nivel si no existe
+       
         nivel = NivelEstudiante(
             estudiante_id=request.estudiante_id,
             nivel_actual=1,
@@ -168,7 +160,7 @@ def responder_actividad(
         db.add(nivel)
         db.flush()
     
-    # Sumar XP
+ 
     nivel.puntos_nivel_actual += xp_ganado
     
     # Verificar si sube de nivel
@@ -177,7 +169,7 @@ def responder_actividad(
         nivel.nivel_actual += 1
         nivel.puntos_para_siguiente_nivel = nivel.nivel_actual * 500
     
-    # 8️⃣ Registrar en historial de puntos
+    
     historial = HistorialPuntos(
         estudiante_id=request.estudiante_id,
         puntos=xp_ganado,
@@ -186,10 +178,10 @@ def responder_actividad(
     )
     db.add(historial)
     
-    # 9️⃣ Guardar todo
+  
     db.commit()
     
-    # 🔟 Calcular porcentaje
+
     porcentaje = (puntos_totales / puntos_maximos * 100) if puntos_maximos > 0 else 0
     
     return ResponderActividadResponse(
@@ -204,9 +196,7 @@ def responder_actividad(
     )
 
 
-# =====================================================
-# 2️⃣ OBTENER RESULTADOS DE UNA ACTIVIDAD RESUELTA
-# =====================================================
+
 @router.get("/progreso/{progreso_id}")
 def obtener_resultado_actividad(
     progreso_id: int,
@@ -245,9 +235,7 @@ def obtener_resultado_actividad(
     }
 
 
-# =====================================================
-# 3️⃣ OBTENER HISTORIAL DE ACTIVIDADES DEL ESTUDIANTE
-# =====================================================
+
 @router.get("/estudiante/{estudiante_id}/historial")
 def obtener_historial_actividades(
     estudiante_id: int,

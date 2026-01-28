@@ -1,11 +1,9 @@
-# app/servicios/padre.py
-
 from sqlalchemy.orm import Session
 from app.modelos import Padre, Estudiante
 from app.esquemas.padre import PadreCreate, PadreUpdate
 
 
-# CRUD ================================================================
+
 
 def crear_padre(db: Session, datos: PadreCreate):
     nuevo_padre = Padre(
@@ -56,7 +54,7 @@ def eliminar_padre(db: Session, padre_id: int):
     return True
 
 
-# EXTRA ================================================================
+
 
 def obtener_hijos(db: Session, padre_id: int):
     return db.query(Estudiante).filter(Estudiante.padre_id == padre_id).all()

@@ -20,7 +20,7 @@ from app.modelos import Usuario
 
 router = APIRouter(prefix="/contenido", tags=["contenido"])
 
-# Endpoints para Contenido de Lectura
+
 @router.post("/lecturas", response_model=ContenidoLecturaResponse)
 def crear_lectura(
     contenido: ContenidoLecturaCreate,
@@ -106,7 +106,7 @@ def obtener_categoria_por_id(
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
     return db_categoria
 
-# Endpoints para Audios de Referencia
+
 @router.post("/audios", response_model=AudioReferenciaResponse)
 def crear_audio_referencia(
     audio: AudioReferenciaCreate,

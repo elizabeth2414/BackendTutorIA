@@ -1,5 +1,3 @@
-# app/routers/actividades_lectura.py
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -143,9 +141,7 @@ def desactivar_actividad(
     return eliminar_actividad_lectura(db, actividad_id)
 
 
-# ================================================================
-# 🤖 GENERACIÓN AUTOMÁTICA CON IA
-# ================================================================
+
 
 class GenerarActividadesRequest(BaseModel):
     """Request para generar actividades automáticamente"""

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-# IMPORTS NECESARIOS PARA EVITAR EL ERROR
+
 from app.esquemas.curso import CursoResponse
 from app.esquemas.docente import DocenteResponse
 

@@ -70,3 +70,7 @@ class ResetPasswordRequest(BaseModel):
 class ResetPasswordConfirm(BaseModel):
     token: str
     nuevo_password: str
+
+class ConfigurarCuentaRequest(BaseModel):
+    token: str
+    nuevo_password: str

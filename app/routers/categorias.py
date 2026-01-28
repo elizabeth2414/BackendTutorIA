@@ -11,9 +11,7 @@ from typing import Optional
 router = APIRouter(prefix="/categorias", tags=["categorias"])
 
 
-# ============================================================
-# ESQUEMAS Pydantic (VALIDACIÓN: 7-10 AÑOS)
-# ============================================================
+
 
 class CategoriaBase(BaseModel):
     nombre: str
@@ -70,9 +68,7 @@ class CategoriaResponse(CategoriaBase):
         from_attributes = True
 
 
-# ============================================================
-# 1. Obtener todas las categorías del docente
-# ============================================================
+
 
 @router.get("/", response_model=list[CategoriaResponse])
 def listar_categorias(
@@ -88,9 +84,7 @@ def listar_categorias(
     return categorias
 
 
-# ============================================================
-# 2. Crear categoría (VALIDACIÓN: 7-10 AÑOS)
-# ============================================================
+
 
 @router.post("/", response_model=CategoriaResponse)
 def crear_categoria(
@@ -122,9 +116,7 @@ def crear_categoria(
     return categoria
 
 
-# ============================================================
-# 3. Actualizar categoría (VALIDACIÓN: 7-10 AÑOS)
-# ============================================================
+
 
 @router.put("/{categoria_id}", response_model=CategoriaResponse)
 def actualizar_categoria(
@@ -149,7 +141,7 @@ def actualizar_categoria(
             detail="La edad mínima no puede ser mayor que la edad máxima"
         )
 
-    # Actualizar valores solo si vienen en el request
+    
     if datos.nombre is not None:
         categoria.nombre = datos.nombre
     if datos.descripcion is not None:
@@ -171,9 +163,7 @@ def actualizar_categoria(
     return categoria
 
 
-# ============================================================
-# 4. Eliminar categoría (desactivar)
-# ============================================================
+
 
 @router.delete("/{categoria_id}")
 def eliminar_categoria(

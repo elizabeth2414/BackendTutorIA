@@ -9,9 +9,6 @@ from app.esquemas.actividad_ia import GenerarActividadesIARequest
 from app.logs.logger import logger
 
 
-# ============================================================
-# ✅ MODELO QAG EN ESPAÑOL
-# ============================================================
 MODEL_NAME = "lmqg/mt5-small-esquad-qag"
 
 logger.info(f"🤖 Cargando modelo QAG en español: {MODEL_NAME}")
@@ -23,21 +20,17 @@ model = AutoModelForSeq2SeqLM.from_pretrained(
 )
 model.eval()
 
-logger.info("✅ Modelo QAG cargado correctamente en CPU.")
+logger.info("Modelo QAG cargado correctamente en CPU.")
 
 
-# ============================================================
-# ⚙️ Parámetros ajustables
-# ============================================================
+
 MIN_LEN_PARA_IA = 120     # si el texto tiene menos de esto, mejor preguntas guiadas
 MAX_TEXTO = 900           # recorte del texto para que no se pase de tokens
 MAX_NEW_TOKENS = 256
 NUM_BEAMS = 4
 
 
-# ============================================================
-# 🧰 Helpers generales
-# ============================================================
+
 def _limpiar_texto(t: str) -> str:
     return re.sub(r"\s+", " ", (t or "").strip())
 
@@ -101,9 +94,7 @@ def _armar_opciones(correcta: str, otras_respuestas: list, texto: str):
     return opciones
 
 
-# ============================================================
-# ✅ Preguntas GUIADAS bonitas (niños 7–10)
-# ============================================================
+
 def _preguntas_guiadas_para_ninos(texto: str) -> dict:
     """
     Se usa cuando el texto es muy corto o cuando el modelo devuelve poco.
@@ -172,9 +163,7 @@ def _pregunta_complemento_nino(idx: int) -> dict:
     return opciones[idx % len(opciones)]
 
 
-# ============================================================
-# ✅ Parseo tolerante de pares QA
-# ============================================================
+
 def extraer_pares_qa(raw: str):
     """
     Intenta parsear:
@@ -211,9 +200,7 @@ def extraer_pares_qa(raw: str):
     return out
 
 
-# ============================================================
-# ✅ IA — Generación del JSON estructurado (niños 7–10)
-# ============================================================
+
 def generar_json_actividad_ia(texto: str, opciones: GenerarActividadesIARequest) -> dict:
     """
     Genera actividad en dict JSON (para tu BD) usando QAG en español.
@@ -228,7 +215,7 @@ def generar_json_actividad_ia(texto: str, opciones: GenerarActividadesIARequest)
 
     texto_resumido = texto[:MAX_TEXTO] if len(texto) > MAX_TEXTO else texto
 
-    # ✅ Si el texto es muy corto, mejor preguntas guiadas (evita IA rara)
+
     if len(texto_resumido) < MIN_LEN_PARA_IA:
         logger.warning(f"⚠️ Texto muy corto (len={len(texto_resumido)}). Usando modo guiado niños.")
         return _preguntas_guiadas_para_ninos(texto_resumido)
@@ -236,7 +223,7 @@ def generar_json_actividad_ia(texto: str, opciones: GenerarActividadesIARequest)
     dificultad = getattr(opciones, "dificultad", "media")
     logger.info(f"📤 Texto a IA len={len(texto_resumido)} dificultad={dificultad}")
 
-    # ✅ Prompt orientado a niños (mejora naturalidad)
+
     prompt = (
         "Genera preguntas claras y fáciles en español para niños de 7 a 10 años "
         "sobre este texto. No uses palabras difíciles.\n\n"
@@ -260,7 +247,7 @@ def generar_json_actividad_ia(texto: str, opciones: GenerarActividadesIARequest)
         logger.info(f"📏 RAW MODELO len={len(raw)}")
 
         pares = extraer_pares_qa(raw)
-        logger.info(f"✅ PARES QA parseados: {len(pares)}")
+        logger.info(f"PARES QA parseados: {len(pares)}")
 
         # Rescate por '?' si no parseó nada
         if len(pares) == 0:
@@ -288,7 +275,7 @@ def generar_json_actividad_ia(texto: str, opciones: GenerarActividadesIARequest)
                     "preguntas": preguntas_rescate
                 }
 
-            logger.warning("⚠️ Rescate falló. Usando modo guiado niños.")
+            logger.warning("Rescate falló. Usando modo guiado niños.")
             return _preguntas_guiadas_para_ninos(texto_resumido)
 
         # Tomar máximo 3 pares
@@ -297,7 +284,7 @@ def generar_json_actividad_ia(texto: str, opciones: GenerarActividadesIARequest)
 
         preguntas = []
 
-        # 1) Multiple choice (si la respuesta es corta)
+        # Multiple choice (si la respuesta es corta)
         q1, a1 = pares[0]
         opciones_mc = None
         if a1 and len(a1.split()) <= 5:
@@ -320,7 +307,7 @@ def generar_json_actividad_ia(texto: str, opciones: GenerarActividadesIARequest)
                 "explicacion": "Responde con tus propias palabras."
             })
 
-        # 2) Verdadero/Falso (suave para niños)
+        # Verdadero/Falso (suave para niños)
         if len(pares) >= 2:
             _, a2 = pares[1]
             frase = a2 if a2 else "algo del texto"
@@ -334,7 +321,7 @@ def generar_json_actividad_ia(texto: str, opciones: GenerarActividadesIARequest)
         else:
             preguntas.append(_pregunta_complemento_nino(1))
 
-        # 3) Texto libre (tercera pregunta si existe)
+        # Texto libre (tercera pregunta si existe)
         if len(pares) >= 3:
             q3, _ = pares[2]
             preguntas.append({
@@ -347,7 +334,7 @@ def generar_json_actividad_ia(texto: str, opciones: GenerarActividadesIARequest)
         else:
             preguntas.append(_pregunta_complemento_nino(2))
 
-        # ✅ Asegurar 3 siempre
+ 
         while len(preguntas) < 3:
             preguntas.append(_pregunta_complemento_nino(len(preguntas)))
 
@@ -366,9 +353,7 @@ def generar_json_actividad_ia(texto: str, opciones: GenerarActividadesIARequest)
         return _preguntas_guiadas_para_ninos(texto_resumido)
 
 
-# ============================================================
-# ✅ Defaults originales (por si los necesitas en otro lado)
-# ============================================================
+
 def crear_preguntas_por_defecto(texto: str) -> list:
     return [
         {
@@ -407,9 +392,7 @@ def crear_estructura_por_defecto(texto: str) -> dict:
     }
 
 
-# ============================================================
-# 🗃️ Guardado en BD (igual que tu flujo)
-# ============================================================
+
 def generar_actividad_ia_para_contenido(
     db: Session,
     contenido: ContenidoLectura,
@@ -465,5 +448,5 @@ def generar_actividad_ia_para_contenido(
     db.commit()
     db.refresh(actividad)
 
-    logger.info(f"✅ Actividad IA creada exitosamente con {len(actividad.preguntas)} preguntas.")
+    logger.info(f"Actividad IA creada exitosamente con {len(actividad.preguntas)} preguntas.")
     return actividad

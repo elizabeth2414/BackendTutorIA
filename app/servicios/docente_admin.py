@@ -1,22 +1,25 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from app.modelos import Usuario, UsuarioRol, Docente
 from app.esquemas.docente import DocenteCreateAdmin, DocenteUpdate
 from app.servicios.seguridad import obtener_password_hash
 
+from app.servicios.email_service import email_service
 
-# ===========================================================
-# CREAR DOCENTE
-# ===========================================================
+import secrets
+
+def now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 def crear_docente_admin(db: Session, data: DocenteCreateAdmin) -> Docente:
-
-    # 1. Validar email repetido (solo usuarios NO eliminados)
+    # Validar email único (no eliminados)
     if db.query(Usuario).filter(
         Usuario.email == data.email,
-        Usuario.deleted_at.is_(None)  # ← Solo no eliminados
+        Usuario.deleted_at.is_(None)
     ).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -24,25 +27,40 @@ def crear_docente_admin(db: Session, data: DocenteCreateAdmin) -> Docente:
         )
 
     try:
-        # 2. Convertir fecha (si viene vacía la ponemos como None)
+        # Parse fecha
         fecha_contratacion = None
         if data.fecha_contratacion not in ["", None]:
             fecha_contratacion = datetime.strptime(
                 str(data.fecha_contratacion), "%Y-%m-%d"
             ).date()
 
-        # 3. Crear usuario
+      
+        password_temporal = secrets.token_urlsafe(32)
+        password_hash_temp = obtener_password_hash(password_temporal)
+
+       
+        setup_token = secrets.token_urlsafe(32)
+        setup_expira = now_utc() + timedelta(hours=48)
+
         usuario = Usuario(
             email=data.email,
-            password_hash=obtener_password_hash(data.password),
+            password_hash=password_hash_temp,
             nombre=data.nombre,
             apellido=data.apellido,
             activo=True,
+
+           
+            email_verificado=False,
+
+           
+            token_reset_password=setup_token,
+            token_reset_expira=setup_expira,
+            token_reset_usado=False,
         )
         db.add(usuario)
-        db.flush()  # obtener usuario.id
+        db.flush()
 
-        # 4. Asignar rol docente
+        # Rol docente
         rol = UsuarioRol(
             usuario_id=usuario.id,
             rol="docente",
@@ -50,7 +68,7 @@ def crear_docente_admin(db: Session, data: DocenteCreateAdmin) -> Docente:
         )
         db.add(rol)
 
-        # 5. Crear docente
+        # Docente
         docente = Docente(
             usuario_id=usuario.id,
             especialidad=data.especialidad,
@@ -61,9 +79,27 @@ def crear_docente_admin(db: Session, data: DocenteCreateAdmin) -> Docente:
         )
         db.add(docente)
 
-        # 6. Guardar cambios
         db.commit()
         db.refresh(docente)
+
+        try:
+            
+            from app import settings
+            frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+            link = f"{frontend_url}/configurar-cuenta?token={setup_token}"
+
+            
+            email_service.send_setup_account_email(
+            to_email=usuario.email,
+            usuario_nombre=f"{usuario.nombre} {usuario.apellido}".strip(),
+            setup_token=setup_token
+            )
+
+            
+        except Exception:
+            # No rompas creación si el email falla, pero loguea
+            from app.logs.logger import logger
+            logger.exception(" No se pudo enviar correo de configuración al docente")
 
         return docente
 
@@ -75,15 +111,12 @@ def crear_docente_admin(db: Session, data: DocenteCreateAdmin) -> Docente:
         )
 
 
-# ===========================================================
-# LISTAR DOCENTES (Solo NO eliminados)
-# ===========================================================
 def listar_docentes_admin(db: Session, activo: Optional[bool] = None) -> List[Docente]:
     """
     Lista solo docentes que NO están eliminados.
     """
     query = db.query(Docente).filter(
-        Docente.deleted_at.is_(None)  # ← Solo no eliminados
+        Docente.deleted_at.is_(None)  
     )
 
     # Filtrar por activo si se especifica
@@ -93,16 +126,14 @@ def listar_docentes_admin(db: Session, activo: Optional[bool] = None) -> List[Do
     return query.all()
 
 
-# ===========================================================
-# OBTENER DOCENTE (Solo si NO está eliminado)
-# ===========================================================
+
 def obtener_docente_admin(db: Session, docente_id: int) -> Docente:
     """
     Obtiene un docente solo si NO está eliminado.
     """
     docente = db.query(Docente).filter(
         Docente.id == docente_id,
-        Docente.deleted_at.is_(None)  # ← Solo no eliminados
+        Docente.deleted_at.is_(None) 
     ).first()
     
     if not docente:
@@ -111,44 +142,42 @@ def obtener_docente_admin(db: Session, docente_id: int) -> Docente:
     return docente
 
 
-# ===========================================================
-# ACTUALIZAR DOCENTE
-# ===========================================================
+
 def actualizar_docente_admin(db: Session, docente_id: int, data: DocenteUpdate):
     """
     Actualiza un docente (solo si NO está eliminado).
     """
-    # Buscar docente (solo no eliminados)
+    
     docente = db.query(Docente).filter(
         Docente.id == docente_id,
-        Docente.deleted_at.is_(None)  # ← Solo no eliminados
+        Docente.deleted_at.is_(None) 
     ).first()
     
     if not docente:
         raise HTTPException(status_code=404, detail="Docente no encontrado")
     
-    # Buscar usuario asociado
+    
     usuario = db.query(Usuario).filter(Usuario.id == docente.usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    # Actualizar campos del USUARIO (si vienen en data)
+   
     if data.nombre is not None:
         usuario.nombre = data.nombre
     if data.apellido is not None:
         usuario.apellido = data.apellido
     if data.email is not None:
-        # Verificar email único (solo entre usuarios NO eliminados)
+       
         email_existe = db.query(Usuario).filter(
             Usuario.email == data.email,
             Usuario.id != usuario.id,
-            Usuario.deleted_at.is_(None)  # ← Solo no eliminados
+            Usuario.deleted_at.is_(None) 
         ).first()
         if email_existe:
             raise HTTPException(400, detail="El email ya está registrado")
         usuario.email = data.email
     
-    # Actualizar campos del DOCENTE (si vienen en data)
+    
     if data.especialidad is not None:
         docente.especialidad = data.especialidad
     if data.grado_academico is not None:
@@ -160,11 +189,10 @@ def actualizar_docente_admin(db: Session, docente_id: int, data: DocenteUpdate):
     if data.activo is not None:
         docente.activo = data.activo
         usuario.activo = data.activo
-    
-    # Actualizar fecha de modificación del usuario
+ 
     usuario.fecha_actualizacion = datetime.utcnow()
     
-    # Guardar cambios
+  
     db.commit()
     db.refresh(docente)
     db.refresh(usuario)
@@ -172,9 +200,7 @@ def actualizar_docente_admin(db: Session, docente_id: int, data: DocenteUpdate):
     return docente
 
 
-# ===========================================================
-# TOGGLE ACTIVO/INACTIVO
-# ===========================================================
+
 def toggle_docente_admin(db: Session, docente_id: int):
     """
     Activa o desactiva un docente (sin eliminarlo).
@@ -182,16 +208,16 @@ def toggle_docente_admin(db: Session, docente_id: int):
     """
     docente = db.query(Docente).filter(
         Docente.id == docente_id,
-        Docente.deleted_at.is_(None)  # ← Solo no eliminados
+        Docente.deleted_at.is_(None)  
     ).first()
     
     if not docente:
         raise HTTPException(status_code=404, detail="Docente no encontrado")
     
-    # Cambiar estado (toggle)
+   
     docente.activo = not docente.activo
     
-    # Cambiar estado del usuario también
+    
     if docente.usuario:
         docente.usuario.activo = docente.activo
     
@@ -201,9 +227,7 @@ def toggle_docente_admin(db: Session, docente_id: int):
     return docente
 
 
-# ===========================================================
-# ELIMINAR DOCENTE (Soft Delete con deleted_at)
-# ===========================================================
+
 def eliminar_docente_admin(db: Session, docente_id: int):
     """
     Soft delete: Marca fecha de eliminación usando deleted_at.
@@ -213,22 +237,22 @@ def eliminar_docente_admin(db: Session, docente_id: int):
     - Se puede recuperar si es necesario
     - NUNCA falla por foreign key constraints
     """
-    # Buscar docente (solo no eliminados)
+  
     docente = db.query(Docente).filter(
         Docente.id == docente_id,
-        Docente.deleted_at.is_(None)  # ← Solo no eliminados
+        Docente.deleted_at.is_(None) 
     ).first()
     
     if not docente:
         raise HTTPException(status_code=404, detail="Docente no encontrado")
     
     try:
-        # Marcar como eliminado con timestamp actual
+       
         ahora = datetime.utcnow()
         docente.deleted_at = ahora
         docente.activo = False
         
-        # Marcar usuario como eliminado también
+        
         if docente.usuario:
             docente.usuario.deleted_at = ahora
             docente.usuario.activo = False
@@ -245,19 +269,17 @@ def eliminar_docente_admin(db: Session, docente_id: int):
         )
 
 
-# ===========================================================
-# RESTAURAR DOCENTE (OPCIONAL - Si quieres recuperar eliminados)
-# ===========================================================
+
 def restaurar_docente_admin(db: Session, docente_id: int):
     """
     Restaura un docente eliminado (soft delete).
     - Elimina deleted_at (pone en NULL)
     - Reactiva el docente y usuario
     """
-    # Buscar docente eliminado
+
     docente = db.query(Docente).filter(
         Docente.id == docente_id,
-        Docente.deleted_at.isnot(None)  # ← Solo eliminados
+        Docente.deleted_at.isnot(None)  
     ).first()
     
     if not docente:

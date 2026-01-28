@@ -2,9 +2,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
-# ------------------------------------------------------------
-# SCHEMAS PARA FRAGMENTOS
-# ------------------------------------------------------------
+
 
 class FragmentoPracticaBase(BaseModel):
     texto_fragmento: str
@@ -26,9 +24,7 @@ class FragmentoPracticaResponse(FragmentoPracticaBase):
         orm_mode = True
 
 
-# ------------------------------------------------------------
-# SCHEMAS PARA EJERCICIO DE PRÁCTICA
-# ------------------------------------------------------------
+
 
 class EjercicioPracticaBase(BaseModel):
     tipo_ejercicio: str
@@ -57,9 +53,7 @@ class EjercicioPracticaResponse(EjercicioPracticaBase):
         orm_mode = True
 
 
-# ------------------------------------------------------------
-# SCHEMAS PARA RESULTADOS DE EJERCICIOS
-# ------------------------------------------------------------
+
 
 class ResultadoEjercicioBase(BaseModel):
     ejercicio_id: int

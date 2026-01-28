@@ -10,20 +10,19 @@ class ContenidoLectura(Base):
     
     id = Column(BigInteger, primary_key=True, index=True)
 
-    # Relaciones opcionales
+    
     curso_id = Column(BigInteger, ForeignKey('curso.id', ondelete='SET NULL'))
     docente_id = Column(BigInteger, ForeignKey('docente.id', ondelete='SET NULL'))
     categoria_id = Column(BigInteger, ForeignKey('categoria_lectura.id', ondelete='SET NULL'))
 
-    # Datos base
+   
     titulo = Column(String(300), nullable=False)
     contenido = Column(Text, nullable=False)
 
-    # Multimedia
+
     audio_url = Column(String(500))
     duracion_audio = Column(Integer)
 
-    # Metadatos
     nivel_dificultad = Column(Integer, nullable=False)
     edad_recomendada = Column(Integer, nullable=False)
     palabras_clave = Column(ARRAY(Text))
@@ -32,7 +31,7 @@ class ContenidoLectura(Base):
     por_defecto = Column(Boolean, default=False)
     publico = Column(Boolean, default=False)
 
-    # Tiempos
+  
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
     fecha_actualizacion = Column(
         DateTime(timezone=True),
@@ -43,12 +42,12 @@ class ContenidoLectura(Base):
     activo = Column(Boolean, default=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
-    # Relaciones ORM
+
     curso = relationship("Curso")
     docente = relationship("Docente")
     categoria = relationship("CategoriaLectura")
 
-    # RELACIÓN CON ACTIVIDADES GENERADAS POR IA
+ 
     actividades = relationship(
         "Actividad",
         back_populates="contenido",

@@ -1,8 +1,6 @@
-# app/modelos/__init__.py
-
 from app.config import Base
 
-# Importar todos los modelos aquí para que estén disponibles
+
 from app.modelos.usuario import Usuario
 from app.modelos.contrasena_anterior import ContrasenaAnterior
 from app.modelos.usuario_rol import UsuarioRol

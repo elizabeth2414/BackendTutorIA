@@ -1,10 +1,10 @@
-# app/esquemas/actividad_ia.py
+
 
 from typing import List, Optional, Any
 from pydantic import BaseModel
 
 
-# ---------- PREGUNTAS ----------
+
 
 class PreguntaBase(BaseModel):
     texto_pregunta: str
@@ -20,11 +20,11 @@ class PreguntaResponse(PreguntaBase):
     id: int
 
     model_config = {
-        "from_attributes": True   # Pydantic v2
+        "from_attributes": True   
     }
 
 
-# ---------- ACTIVIDAD ----------
+
 
 class ActividadBase(BaseModel):
     tipo: str
@@ -46,7 +46,7 @@ class ActividadResponse(ActividadBase):
     }
 
 
-# ---------- REQUEST PARA GENERAR POR IA ----------
+
 
 class GenerarActividadesIARequest(BaseModel):
     num_preguntas: int = 5

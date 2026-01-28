@@ -1,15 +1,13 @@
-# app/scripts/crear_admin_inicial.py
-
 from app.config import SessionLocal
 from app.modelos import Usuario
-from app.modelos.usuario_rol import UsuarioRol  # ⬅️ ajusta el import si tu modelo está en otro archivo
+from app.modelos.usuario_rol import UsuarioRol  
 from app.servicios.seguridad import obtener_password_hash
 
 
 def crear_admin_inicial():
     db = SessionLocal()
 
-    # 👇 CONFIGURA AQUÍ LAS CREDENCIALES DEL ADMIN
+    # crednciales admin aqui
     email_admin = "admin@tutoria.com"
     password_plano = "AdminIA2025@"
     nombre_admin = "Admin"

@@ -1,17 +1,3 @@
-# app/servicios/generador_actividades_ia.py
-
-"""
-Servicio de IA para generar automáticamente actividades de lectura
-basadas en el contenido del texto.
-
-Genera preguntas de:
-- Comprensión lectora
-- Vocabulario
-- Inferencia
-- Idea principal
-- Detalles específicos
-"""
-
 import re
 import random
 from typing import List, Dict, Any, Optional

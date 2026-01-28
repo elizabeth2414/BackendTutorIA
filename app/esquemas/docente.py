@@ -1,4 +1,4 @@
-from __future__ import annotations  # opcional, pero ayuda con tipos adelantados
+from __future__ import annotations  
 
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -7,9 +7,7 @@ from datetime import date, datetime
 from app.esquemas.usuario import UsuarioResponse
 
 
-# ===============================
-# ESQUEMAS EXISTENTES (DOCENTE)
-# ===============================
+
 
 class DocenteBase(BaseModel):
     especialidad: Optional[str] = None
@@ -20,7 +18,7 @@ class DocenteBase(BaseModel):
 
 
 class DocenteCreate(DocenteBase):
-    # Este se usa cuando YA existe el usuario y solo se crea el docente
+    
     usuario_id: int
 
 
@@ -48,9 +46,7 @@ class DocenteResponse(DocenteBase):
         from_attributes = True
 
 
-# ===============================
-# ESQUEMAS ESPECIALES PARA ADMIN
-# ===============================
+
 
 class DocenteCreateAdmin(DocenteBase):
     """
@@ -59,7 +55,7 @@ class DocenteCreateAdmin(DocenteBase):
     """
     # Datos de usuario
     email: EmailStr
-    password: str
+    password: Optional[str] = None  # ✅ Ahora es opcional
     nombre: str
     apellido: str
 

@@ -2,14 +2,12 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
-# ------------------------------------------------------------
-# SCHEMAS PARA ACTIVIDADES
-# ------------------------------------------------------------
+
 
 class ActividadBase(BaseModel):
     titulo: str
     descripcion: Optional[str] = None
-    tipo: str   # lectura, practica, cuestionario, etc.
+    tipo: str  
     nivel: Optional[int] = None
     categoria_id: Optional[int] = None
 
@@ -34,9 +32,7 @@ class ActividadResponse(ActividadBase):
         from_attributes = True
 
 
-# ------------------------------------------------------------
-# SCHEMAS PARA PREGUNTAS DE ACTIVIDAD
-# ------------------------------------------------------------
+
 
 class PreguntaBase(BaseModel):
     actividad_id: int
@@ -55,14 +51,12 @@ class PreguntaResponse(PreguntaBase):
         from_attributes = True
 
 
-# ------------------------------------------------------------
-# PROGRESO DE ACTIVIDAD POR ESTUDIANTE
-# ------------------------------------------------------------
+
 
 class ProgresoActividadBase(BaseModel):
     actividad_id: int
     estudiante_id: int
-    estado: Optional[str] = None  # iniciado, completado
+    estado: Optional[str] = None  
     puntaje: Optional[int] = None
 
 
@@ -77,9 +71,7 @@ class ProgresoActividadResponse(ProgresoActividadBase):
         from_attributes = True
 
 
-# ------------------------------------------------------------
-# RESPUESTA DE PREGUNTAS
-# ------------------------------------------------------------
+
 
 class RespuestaPreguntaBase(BaseModel):
     pregunta_id: int

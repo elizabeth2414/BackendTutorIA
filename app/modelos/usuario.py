@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, BigInteger
 from sqlalchemy.sql import func
 from app.modelos import Base
+from sqlalchemy.orm import relationship
+
 
 class Usuario(Base):
     __tablename__ = 'usuario'
@@ -19,6 +21,8 @@ class Usuario(Base):
     deleted_at = Column(DateTime(timezone=True), nullable=True)
     otp_secret = Column(String(255))
     otp_habilitado = Column(Boolean, default=False)
+    roles = relationship("UsuarioRol", back_populates="usuario", passive_deletes=True)
+    sesiones = relationship("SesionUsuario", back_populates="usuario", passive_deletes=True)
 
     # Verificación de email
     email_verificado = Column(Boolean, default=False, nullable=False)
