@@ -71,25 +71,25 @@ class ManagerAprendizajeIA:
         Genera feedback personalizado SÚPER MOTIVADOR para niños de 7-10 años.
         Extremadamente positivo y alentador.
         """
-        
+
         # 🎯 ANÁLISIS DE ERRORES POR TIPO
         errores_por_tipo = {
             "omision": [],
             "sustitucion": [],
             "insercion": [],
         }
-        
+
         for error in errores:
             tipo = error.get("tipo_error", "otro")
             if tipo in errores_por_tipo:
                 errores_por_tipo[tipo].append(error)
-        
+
         # 📊 ESTADÍSTICAS
         total_errores = len(errores)
         omisiones = len(errores_por_tipo["omision"])
         sustituciones = len(errores_por_tipo["sustitucion"])
         inserciones = len(errores_por_tipo["insercion"])
-        
+
         # 🎤 MENSAJE DE VOZ (extremadamente motivador para niños pequeños)
         if mejoro:
             if precision >= 90:
@@ -135,10 +135,10 @@ class ManagerAprendizajeIA:
                     "¡Qué bien que no te rindes! ¡Aprender lleva tiempo y está bien! 💙",
                 ]
                 emoji = "🌈"
-        
+
         import random
         mensaje_voz = random.choice(mensajes_voz)
-        
+
         # 📝 MENSAJE DETALLADO (muy amigable y motivador)
         mensaje_detallado = self._construir_mensaje_detallado(
             precision,
@@ -148,7 +148,7 @@ class ManagerAprendizajeIA:
             inserciones,
             mejoro,
         )
-        
+
         # 🎯 PALABRAS ESPECÍFICAS CON PROBLEMAS (con sugerencias amigables)
         palabras_problema = []
         for error in errores[:3]:  # Solo las 3 más importantes para no abrumar
@@ -158,10 +158,10 @@ class ManagerAprendizajeIA:
                     "tipo_error": error["tipo_error"],
                     "sugerencia": self._generar_sugerencia(error),
                 })
-        
+
         # 🏆 NIVEL DE LOGRO
         nivel_logro = self._calcular_nivel_logro(precision, mejoro)
-        
+
         return {
             "mensaje_voz": mensaje_voz,
             "mensaje_detallado": mensaje_detallado,
@@ -175,7 +175,7 @@ class ManagerAprendizajeIA:
             "nivel_logro": nivel_logro,
             "mejora_lograda": mejoro,
         }
-    
+
     def _construir_mensaje_detallado(
         self,
         precision: float,
@@ -186,68 +186,68 @@ class ManagerAprendizajeIA:
         mejoro: bool,
     ) -> str:
         """Construye mensaje detallado súper motivador para niños."""
-        
+
         if mejoro and precision >= 85:
             return (
                 f"¡Felicidades, campeón! 🎊 ¡Tu lectura fue hermosa con {precision:.0f}%! "
                 f"¡Casi no tuviste errores! ¡Eres un súper lector! Sigue así. 🏆"
             )
-        
+
         if mejoro:
             return (
                 f"¡Muy bien! 🌟 ¡Lograste {precision:.0f}%! "
                 f"¡Has mejorado muchísimo! ¡Me encanta tu esfuerzo! 💪"
             )
-        
+
         # Mensaje cuando NO mejoró (MUY positivo y motivador)
         if total == 0:
             return "¡Perfecto! ¡Leíste sin errores! ¡Eres increíble! 🌟"
-        
+
         if total == 1:
             return (
                 f"¡Súper bien! Solo tuviste 1 pequeñito error. "
                 f"¡Casi lo tienes perfecto! Vamos a practicar esa palabrita juntos. 💙"
             )
-        
+
         if total <= 3:
             return (
                 f"¡Buen trabajo! Tuviste solo {total} pequeños errores. "
                 f"¡Lo estás haciendo muy bien! Vamos a mejorar juntos. 🌈"
             )
-        
+
         partes = [f"Tuviste {total} pequeños errores, pero ¡lo intentaste con mucho valor! 💪"]
-        
+
         if omisiones > 0:
             partes.append(
                 f"Te saltaste {omisiones} palabra{'s' if omisiones > 1 else ''}. "
                 f"¡Lee despacito con tu dedito! 📖"
             )
-        
+
         if sustituciones > 0:
             partes.append(
                 f"Leíste {sustituciones} palabra{'s' if sustituciones > 1 else ''} diferente. "
                 f"¡Ya casi las tienes! Practica diciéndolas. 💪"
             )
-        
+
         if inserciones > 0:
             partes.append(
                 f"Agregaste {inserciones} palabra{'s' if inserciones > 1 else ''} de más. "
                 f"¡Sigue el texto con tu dedito! 👆"
             )
-        
+
         partes.append(
             "\n💡 Consejito de tu amigo: Lee despacito, palabra por palabra. "
             "¡No hay prisa! ¡Lo estás haciendo genial! 🌈"
         )
-        
+
         return " ".join(partes)
-    
+
     def _generar_sugerencia(self, error: Dict) -> str:
         """Genera sugerencia súper amigable para cada tipo de error."""
-        
+
         tipo = error.get("tipo_error", "")
         palabra = error.get("palabra_original", "")
-        
+
         if tipo == "omision":
             return f"Lee despacito y marca '{palabra}' con tu dedito. ¡Así no te la saltarás! 💪"
         elif tipo == "sustitucion":
@@ -257,10 +257,10 @@ class ManagerAprendizajeIA:
             return "Lee siguiendo el texto con tu dedito. ¡Eso te ayudará un montón! 👆"
         else:
             return "Practica esta palabrita varias veces. ¡Lo harás genial! 🌟"
-    
+
     def _calcular_nivel_logro(self, precision: float, mejoro: bool) -> str:
         """Calcula el nivel de logro - más generoso para niños."""
-        
+
         if precision >= 90:
             return "excelente"
         elif precision >= 75:
@@ -284,10 +284,10 @@ class ManagerAprendizajeIA:
         MUY TOLERANTE para niños de 7-10 años.
         """
         logger.info(
-            f"🎯 Iniciando práctica | estudiante={estudiante_id} | "
+            f" Iniciando práctica | estudiante={estudiante_id} | "
             f"ejercicio={ejercicio_id}"
         )
-        
+
         try:
             # 1. Buscar ejercicio
             ejercicio = (
@@ -298,7 +298,7 @@ class ManagerAprendizajeIA:
                 )
                 .first()
             )
-            
+
             if not ejercicio:
                 logger.error(
                     f"❌ Ejercicio no encontrado | id={ejercicio_id} | "
@@ -313,14 +313,43 @@ class ManagerAprendizajeIA:
                 f"texto={ejercicio.texto_practica[:50]}..."
             )
 
+            # =========================================================
+            # ✅ FIX: usar palabras_objetivo si texto_practica es instrucción
+            # =========================================================
+            texto_para_analizar = (ejercicio.texto_practica or "").strip()
+            texto_lower = texto_para_analizar.lower()
+
+            parece_instruccion = (
+                texto_lower.startswith("repite")
+                or "palabras indicadas" in texto_lower
+                or "hasta que" in texto_lower
+                or texto_lower.startswith("lee")
+                or "pronuncia" in texto_lower
+            )
+
+            if (
+                parece_instruccion
+                and getattr(ejercicio, "palabras_objetivo", None)
+                and len(ejercicio.palabras_objetivo or []) > 0
+            ):
+                palabras = [
+                    (p or "").strip()
+                    for p in (ejercicio.palabras_objetivo or [])
+                    if (p or "").strip()
+                ]
+                if palabras:
+                    texto_para_analizar = " ".join(palabras)
+
+            logger.info(f"🧪 Texto usado para evaluar: {texto_para_analizar}")
+
             # 2. Analizar audio
             logger.info(f"🎤 Analizando audio | path={audio_path}")
-            
+
             analisis = self.analizador.analizar_practica_ejercicio(
-                texto_practica=ejercicio.texto_practica,
+                texto_practica=texto_para_analizar,
                 audio_path=audio_path,
             )
-            
+
             logger.info(
                 f"📊 Análisis completado | "
                 f"precisión={analisis.get('precision_global', 0):.1f}%"
@@ -329,7 +358,7 @@ class ManagerAprendizajeIA:
             # 3. Evaluar mejora (MUY PERMISIVO para niños de 7-10 años)
             precision = analisis.get("precision_global", 0.0)
             errores = analisis.get("errores_detectados", [])
-            
+
             # 🎯 CRITERIOS SÚPER GENEROSOS PARA NIÑOS PEQUEÑOS
             if precision >= 75:  # Bajado de 82 para ser más motivador
                 mejoro = True
@@ -376,7 +405,7 @@ class ManagerAprendizajeIA:
                 mejoro=mejoro,
                 intentos=ejercicio.intentos,
             )
-            
+
             # 6. Combinar resultados
             resultado = {
                 **analisis,
