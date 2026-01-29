@@ -218,3 +218,68 @@ async def practicar_ejercicio_endpoint(
     except Exception as e:
         logger.exception("❌ Error al analizar práctica de ejercicio con IA")
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    
+
+@router.post("/analizar-palabra-individual")
+async def analizar_palabra_individual_endpoint(
+    palabra_objetivo: str = Form(...),
+    audio: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+):
+    """
+    Analiza la pronunciación de una palabra individual.
+    Optimizado para práctica rápida palabra por palabra.
+    """
+    logger.info(f"📥 Análisis de palabra individual: '{palabra_objetivo}'")
+    
+    _asegurar_directorios()
+    
+    try:
+        # Guardar audio temporal
+        ext = os.path.splitext(audio.filename or "")[1] or ".wav"
+        filename = f"palabra_{uuid.uuid4().hex}{ext}"
+        audio_path = os.path.join(PRACTICA_AUDIO_DIR, filename)
+        
+        with open(audio_path, "wb") as f:
+            contenido_bytes = await audio.read()
+            f.write(contenido_bytes)
+        
+        logger.info(f"💾 Audio guardado: {len(contenido_bytes)} bytes")
+        
+        # Analizar solo esta palabra
+        resultado = analizador.analizar_practica_ejercicio(
+            texto_practica=palabra_objetivo,
+            audio_path=audio_path,
+        )
+        
+        # Agregar feedback específico para niños
+        precision = resultado.get("precision_global", 0)
+        texto_transcrito = resultado.get("texto_transcrito", "").strip().lower()
+        palabra_normalizada = palabra_objetivo.strip().lower()
+        
+        # Mensaje motivador
+        if precision >= 80:
+            mensaje = "¡Excelente! ¡Lo dijiste muy bien! 🌟"
+        elif precision >= 60:
+            mensaje = "¡Buen intento! Ya casi lo tienes. 💪"
+        elif precision >= 40:
+            mensaje = "Sigue intentando. Escucha otra vez cómo suena. 👂"
+        else:
+            mensaje = "Vamos a practicar juntos. ¡Tú puedes! 💙"
+        
+        # Agregar el mensaje al resultado
+        resultado["mensaje_motivador"] = mensaje
+        resultado["palabra_objetivo"] = palabra_objetivo
+        resultado["coincidencia_exacta"] = (texto_transcrito == palabra_normalizada)
+        
+        logger.info(
+            f"✅ Análisis completado | palabra: '{palabra_objetivo}' | "
+            f"transcrito: '{texto_transcrito}' | precisión: {precision:.1f}%"
+        )
+        
+        return resultado
+        
+    except Exception as e:
+        logger.exception("❌ Error al analizar palabra individual")
+        raise HTTPException(status_code=500, detail=f"Error al analizar: {str(e)}")

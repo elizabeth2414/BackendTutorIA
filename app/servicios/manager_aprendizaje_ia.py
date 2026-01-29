@@ -68,8 +68,8 @@ class ManagerAprendizajeIA:
         intentos: int,
     ) -> Dict:
         """
-        Genera feedback personalizado y detallado para el niño.
-        Incluye mensaje de voz y texto con análisis de errores.
+        Genera feedback personalizado SÚPER MOTIVADOR para niños de 7-10 años.
+        Extremadamente positivo y alentador.
         """
         
         # 🎯 ANÁLISIS DE ERRORES POR TIPO
@@ -90,29 +90,56 @@ class ManagerAprendizajeIA:
         sustituciones = len(errores_por_tipo["sustitucion"])
         inserciones = len(errores_por_tipo["insercion"])
         
-        # 🎤 MENSAJE DE VOZ (corto y motivador)
+        # 🎤 MENSAJE DE VOZ (extremadamente motivador para niños pequeños)
         if mejoro:
-            if precision >= 95:
-                mensaje_voz = "¡Excelente trabajo! Leíste casi perfecto. ¡Eres increíble!"
+            if precision >= 90:
+                mensajes_voz = [
+                    "¡Eres un súper campeón! ¡Leíste increíble! ¡Estoy súper orgulloso de ti! 🌟",
+                    "¡Guauuuu! ¡Qué maravilla de lectura! ¡Eres una estrella brillante! ✨",
+                    "¡Fantástico! ¡Qué bien leíste! ¡Eres el mejor! ¡Sigue así! 🏆",
+                ]
                 emoji = "🌟"
-            elif precision >= 85:
-                mensaje_voz = "¡Muy bien! Has mejorado mucho. Sigue así campeón."
+            elif precision >= 75:
+                mensajes_voz = [
+                    "¡Muy bien hecho, campeón! ¡Mejoraste un montón! ¡Me encanta! 🎉",
+                    "¡Excelente trabajo! ¡Cada día lees mejor! ¡Qué orgullo! 👏",
+                    "¡Súper! ¡Tu práctica está dando resultados! ¡Eres genial! ⭐",
+                ]
                 emoji = "🎉"
             else:
-                mensaje_voz = "¡Bien hecho! Ya vas mejorando. Sigamos practicando juntos."
+                mensajes_voz = [
+                    "¡Bien hecho! ¡Vas mejorando! ¡Sigamos practicando juntos! 💪",
+                    "¡Genial! ¡Ya vas por buen camino! ¡Cada intento cuenta! 🚀",
+                    "¡Qué bien! ¡Estás aprendiendo! ¡Sigue así, campeón! 🌈",
+                ]
                 emoji = "👏"
         else:
             if intentos == 1:
-                mensaje_voz = "Buen primer intento. Vamos a practicar un poquito más."
+                mensajes_voz = [
+                    "¡Buen primer intento, campeón! ¡Vamos a practicar juntos! 💙",
+                    "¡Lo estás haciendo bien! ¡Con práctica lo lograrás! 🎈",
+                    "¡Qué valiente! ¡Cada lectura te hace más fuerte! 🌻",
+                ]
                 emoji = "💪"
             elif intentos == 2:
-                mensaje_voz = "Ya casi lo tienes. Intenta leer más despacio y claro."
+                mensajes_voz = [
+                    "¡Ya casi lo tienes! ¡Lee despacito y lo lograrás! ¡Tú puedes! 🎯",
+                    "¡Vas mejorando! ¡Un intento más y lo tendrás! 💫",
+                    "¡Sigue así! ¡Estás muy cerca de lograrlo! 🎨",
+                ]
                 emoji = "🎯"
             else:
-                mensaje_voz = "No te preocupes, todos aprendemos diferente. Tómate tu tiempo."
+                mensajes_voz = [
+                    "¡Lo estás haciendo genial! ¡Cada niño aprende a su ritmo! ¡Tómate tu tiempo! 🌈",
+                    "¡Sigue intentando, campeón! ¡Cada intento es un paso adelante! 🌟",
+                    "¡Qué bien que no te rindes! ¡Aprender lleva tiempo y está bien! 💙",
+                ]
                 emoji = "🌈"
         
-        # 📝 MENSAJE DETALLADO (para mostrar en pantalla)
+        import random
+        mensaje_voz = random.choice(mensajes_voz)
+        
+        # 📝 MENSAJE DETALLADO (muy amigable y motivador)
         mensaje_detallado = self._construir_mensaje_detallado(
             precision,
             total_errores,
@@ -122,9 +149,9 @@ class ManagerAprendizajeIA:
             mejoro,
         )
         
-        # 🎯 PALABRAS ESPECÍFICAS CON PROBLEMAS
+        # 🎯 PALABRAS ESPECÍFICAS CON PROBLEMAS (con sugerencias amigables)
         palabras_problema = []
-        for error in errores[:5]:  # Máximo 5 palabras
+        for error in errores[:3]:  # Solo las 3 más importantes para no abrumar
             if error.get("palabra_original"):
                 palabras_problema.append({
                     "palabra": error["palabra_original"],
@@ -158,66 +185,87 @@ class ManagerAprendizajeIA:
         inserciones: int,
         mejoro: bool,
     ) -> str:
-        """Construye mensaje detallado con análisis de errores."""
+        """Construye mensaje detallado súper motivador para niños."""
         
-        if mejoro and precision >= 90:
+        if mejoro and precision >= 85:
             return (
-                f"¡Felicitaciones! Tu lectura fue excelente con {precision:.0f}% de precisión. "
-                f"Casi no tuviste errores. ¡Sigue así!"
+                f"¡Felicidades, campeón! 🎊 ¡Tu lectura fue hermosa con {precision:.0f}%! "
+                f"¡Casi no tuviste errores! ¡Eres un súper lector! Sigue así. 🏆"
             )
         
         if mejoro:
             return (
-                f"¡Muy bien! Alcanzaste {precision:.0f}% de precisión. "
-                f"Has mejorado mucho en este ejercicio."
+                f"¡Muy bien! 🌟 ¡Lograste {precision:.0f}%! "
+                f"¡Has mejorado muchísimo! ¡Me encanta tu esfuerzo! 💪"
             )
         
-        # Mensaje cuando NO mejoró
-        partes = [f"Tuviste {total} {'error' if total == 1 else 'errores'} en total:"]
+        # Mensaje cuando NO mejoró (MUY positivo y motivador)
+        if total == 0:
+            return "¡Perfecto! ¡Leíste sin errores! ¡Eres increíble! 🌟"
+        
+        if total == 1:
+            return (
+                f"¡Súper bien! Solo tuviste 1 pequeñito error. "
+                f"¡Casi lo tienes perfecto! Vamos a practicar esa palabrita juntos. 💙"
+            )
+        
+        if total <= 3:
+            return (
+                f"¡Buen trabajo! Tuviste solo {total} pequeños errores. "
+                f"¡Lo estás haciendo muy bien! Vamos a mejorar juntos. 🌈"
+            )
+        
+        partes = [f"Tuviste {total} pequeños errores, pero ¡lo intentaste con mucho valor! 💪"]
         
         if omisiones > 0:
             partes.append(
-                f"• {omisiones} palabra{'s' if omisiones > 1 else ''} que saltaste"
+                f"Te saltaste {omisiones} palabra{'s' if omisiones > 1 else ''}. "
+                f"¡Lee despacito con tu dedito! 📖"
             )
         
         if sustituciones > 0:
             partes.append(
-                f"• {sustituciones} palabra{'s' if sustituciones > 1 else ''} que leíste diferente"
+                f"Leíste {sustituciones} palabra{'s' if sustituciones > 1 else ''} diferente. "
+                f"¡Ya casi las tienes! Practica diciéndolas. 💪"
             )
         
         if inserciones > 0:
             partes.append(
-                f"• {inserciones} palabra{'s' if inserciones > 1 else ''} que agregaste"
+                f"Agregaste {inserciones} palabra{'s' if inserciones > 1 else ''} de más. "
+                f"¡Sigue el texto con tu dedito! 👆"
             )
         
-        partes.append("\n💡 Consejo: Lee más despacio y marca bien cada palabra.")
+        partes.append(
+            "\n💡 Consejito de tu amigo: Lee despacito, palabra por palabra. "
+            "¡No hay prisa! ¡Lo estás haciendo genial! 🌈"
+        )
         
         return " ".join(partes)
     
     def _generar_sugerencia(self, error: Dict) -> str:
-        """Genera sugerencia específica para cada tipo de error."""
+        """Genera sugerencia súper amigable para cada tipo de error."""
         
         tipo = error.get("tipo_error", "")
         palabra = error.get("palabra_original", "")
         
         if tipo == "omision":
-            return f"No te saltes '{palabra}'. Léela completa."
+            return f"Lee despacito y marca '{palabra}' con tu dedito. ¡Así no te la saltarás! 💪"
         elif tipo == "sustitucion":
             leida = error.get("palabra_leida", "")
-            return f"Dijiste '{leida}' pero dice '{palabra}'."
+            return f"Dijiste '{leida}' pero es '{palabra}'. ¡Repite conmigo: '{palabra}'! 🎯"
         elif tipo == "insercion":
-            return "Agregaste una palabra que no está en el texto."
+            return "Lee siguiendo el texto con tu dedito. ¡Eso te ayudará un montón! 👆"
         else:
-            return "Revisa esta parte del texto."
+            return "Practica esta palabrita varias veces. ¡Lo harás genial! 🌟"
     
     def _calcular_nivel_logro(self, precision: float, mejoro: bool) -> str:
-        """Calcula el nivel de logro alcanzado."""
+        """Calcula el nivel de logro - más generoso para niños."""
         
-        if precision >= 95:
+        if precision >= 90:
             return "excelente"
-        elif precision >= 85:
+        elif precision >= 75:
             return "muy_bueno"
-        elif precision >= 70:
+        elif precision >= 60:
             return "bueno"
         elif mejoro:
             return "mejorando"
@@ -232,7 +280,8 @@ class ManagerAprendizajeIA:
         audio_path: str,
     ) -> Dict:
         """
-        El niño practica un ejercicio concreto con feedback de voz detallado.
+        El niño practica un ejercicio concreto.
+        MUY TOLERANTE para niños de 7-10 años.
         """
         logger.info(
             f"🎯 Iniciando práctica | estudiante={estudiante_id} | "
@@ -277,16 +326,18 @@ class ManagerAprendizajeIA:
                 f"precisión={analisis.get('precision_global', 0):.1f}%"
             )
 
-            # 3. Evaluar mejora
+            # 3. Evaluar mejora (MUY PERMISIVO para niños de 7-10 años)
             precision = analisis.get("precision_global", 0.0)
             errores = analisis.get("errores_detectados", [])
             
-            # Criterios de mejora más detallados
-            if precision >= 85:
+            # 🎯 CRITERIOS SÚPER GENEROSOS PARA NIÑOS PEQUEÑOS
+            if precision >= 75:  # Bajado de 82 para ser más motivador
                 mejoro = True
-            elif precision >= 70 and len(errores) <= 2:
+            elif precision >= 65 and len(errores) <= 4:  # Muy permisivo
                 mejoro = True
-            elif precision >= 60 and len(errores) == 0:
+            elif precision >= 55 and len(errores) <= 2:
+                mejoro = True
+            elif len(errores) == 0:  # Si no tiene errores, siempre mejoró
                 mejoro = True
             else:
                 mejoro = False
@@ -318,7 +369,7 @@ class ManagerAprendizajeIA:
                 f"intentos={ejercicio.intentos}"
             )
 
-            # 5. 🎤 GENERAR FEEDBACK DETALLADO CON VOZ
+            # 5. 🎤 GENERAR FEEDBACK SÚPER MOTIVADOR
             feedback = self._generar_feedback_detallado(
                 precision=precision,
                 errores=errores,

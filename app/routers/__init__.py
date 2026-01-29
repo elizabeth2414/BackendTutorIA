@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter
 
 from app.routers import (
@@ -22,6 +21,7 @@ from app.routers import (
     admin_dashboard,
     admin_estudiantes,
     actividades_estudiante,
+    docentes_progreso,
 )
 from app.routers import (
     historial_pronunciacion,
@@ -52,6 +52,8 @@ api_router.include_router(padres.router)
 api_router.include_router(admin_dashboard.router)
 api_router.include_router(admin_estudiantes.router)
 api_router.include_router(actividades_estudiante.router)
+api_router.include_router(docentes_progreso.router)
+
 
 
 api_router.include_router(usuarios.router)

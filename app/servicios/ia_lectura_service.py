@@ -23,7 +23,7 @@ class ServicioAnalisisLectura:
     TOKEN_REGEX = r"[A-Za-zÁÉÍÓÚÜáéíóúüñÑ0-9]+|[¿\?¡!.,;:]"
 
     def __init__(self, modelo: str = "small") -> None:
-        logger.info(f"Cargando modelo Faster-Whisper '{modelo}' (modo niños)...")
+        logger.info(f"Cargando modelo Faster-Whisper '{modelo}' (modo niños 7-10 años)...")
         self.model = WhisperModel(modelo, device="cpu", compute_type="int8")
         logger.info("Modelo Faster-Whisper cargado correctamente.")
 
@@ -43,6 +43,21 @@ class ServicioAnalisisLectura:
             self._normalizar_texto(texto),
             flags=re.UNICODE,
         )
+    def _tokenizar_con_tildes(self, texto: str) -> List[str]:
+        """
+        Tokeniza el texto preservando las tildes.
+        Se usa para mostrar las palabras originales al usuario.
+        """
+        if not texto:
+            return []
+        # Solo normalizar espacios y convertir a minúsculas, SIN quitar tildes
+        texto = texto.replace("\n", " ").strip().lower()
+        texto = re.sub(r"\s+", " ", texto)
+        return re.findall(
+            self.TOKEN_REGEX,
+            texto,
+            flags=re.UNICODE,
+        )
 
     def _es_puntuacion(self, token: str) -> bool:
         return bool(re.fullmatch(r"[¿\?¡!.,;:]", token or ""))
@@ -57,7 +72,10 @@ class ServicioAnalisisLectura:
     def _similitud_palabra(self, a: str, b: str) -> float:
         if not a or not b:
             return 0.0
-        return SequenceMatcher(None, a, b).ratio()
+        # Normalizar ambas palabras para comparación justa
+        a_norm = self._normalizar_texto(a)
+        b_norm = self._normalizar_texto(b)
+        return SequenceMatcher(None, a_norm, b_norm).ratio()
 
     # ================= TRANSCRIPCIÓN =================
     def _transcribir_audio(self, audio_path: str) -> Dict:
@@ -91,14 +109,17 @@ class ServicioAnalisisLectura:
             "tiempo_procesamiento": time.time() - inicio,
         }
 
-    # ================= COMPARACIÓN =================
+    # ================= COMPARACIÓN MÁS TOLERANTE PARA NIÑOS =================
     def _comparar_textos(
         self,
         texto_referencia: str,
         texto_leido: str,
         duracion_segundos: float,
     ) -> Dict:
-
+        
+        # 🆕 Guardar tokens CON tildes para mostrar al usuario
+        ref_tokens_originales = self._tokenizar_con_tildes(texto_referencia)
+        # Tokens normalizados (sin tildes) para comparación
         ref_tokens = self._tokenizar(texto_referencia)
         leido_tokens = self._limpiar_repeticiones(
             self._tokenizar(texto_leido)
@@ -108,22 +129,39 @@ class ServicioAnalisisLectura:
         errores_detectados = []
         tokens_correctos = 0
 
+        # 🎯 UMBRAL DE SIMILITUD MÁS PERMISIVO PARA NIÑOS
+        # Para niños de 7-10 años, aceptamos mayor variación en la pronunciación
+        UMBRAL_SIMILITUD_NINOS = 0.65  # Antes era 0.75
+
         for tag, i1, i2, j1, j2 in matcher.get_opcodes():
             if tag == "equal":
                 tokens_correctos += (i2 - i1)
                 continue
 
             for i in range(i1, i2):
-                palabra_original = ref_tokens[i] if i < len(ref_tokens) else None
+                # 🆕 Palabra CON tildes para mostrar al usuario
+                palabra_original = ref_tokens_originales[i] if i < len(ref_tokens_originales) else None
+                # Palabra SIN tildes para comparaciones
+                palabra_original_norm = ref_tokens[i] if i < len(ref_tokens) else None
                 palabra_leida = leido_tokens[j1] if j1 < len(leido_tokens) else None
 
-                if self._es_puntuacion(palabra_original or ""):
+                # Ignorar errores de puntuación para niños
+                if self._es_puntuacion(palabra_original_norm or ""):
                     continue
 
                 if tag == "replace":
-                    if self._similitud_palabra(palabra_original, palabra_leida) >= 0.75:
+                    # Mucho más tolerante con palabras similares
+                    similitud = self._similitud_palabra(palabra_original_norm, palabra_leida)
+                    
+                    if similitud >= UMBRAL_SIMILITUD_NINOS:
                         tokens_correctos += 1
                         continue
+                    
+                    # Si la palabra es MUY parecida (>= 0.5), considerarla como medio correcta
+                    if similitud >= 0.5:
+                        tokens_correctos += 0.7  # Dar crédito parcial
+                        # Registrar como error leve
+                    
                     tipo_error = "sustitucion"
                 elif tag == "delete":
                     tipo_error = "omision"
@@ -138,7 +176,7 @@ class ServicioAnalisisLectura:
                         "palabra_original": palabra_original,
                         "palabra_leida": palabra_leida,
                         "posicion": i,
-                        "severidad": 2,
+                        "severidad": 1,  # Severidad baja por defecto para niños
                     }
                 )
 
@@ -150,16 +188,29 @@ class ServicioAnalisisLectura:
             if e["tipo_error"] != "puntuacion"
         ]
 
-        # 🎯 MODO NIÑOS
-        if precision >= 88 and len(errores_reales) <= 2:
+        # 🎯 SISTEMA DE RECOMPENSA MUY GENEROSO PARA NIÑOS DE 7-10 AÑOS
+        # Los niños necesitan mucho refuerzo positivo
+        
+        # Si tiene muy pocos errores, considerar perfecto
+        if len(errores_reales) <= 1:
             precision = 100
-        elif precision >= 80:
-            precision = min(100, precision + 10)
-
-        precision = max(60, min(precision, 100))
+        elif len(errores_reales) <= 3 and precision >= 75:
+            precision = 95
+        elif len(errores_reales) <= 5 and precision >= 70:
+            precision = 90
+        # Bonificación general por esfuerzo
+        elif precision >= 75:
+            precision = min(100, precision + 15)
+        elif precision >= 60:
+            precision = min(100, precision + 20)
+        elif precision >= 50:
+            precision = min(100, precision + 15)
+        
+        # Piso mínimo de 50% para no desanimar
+        precision = max(50, min(precision, 100))
 
         palabras = len([t for t in leido_tokens if not self._es_puntuacion(t)])
-        ppm = (palabras / (duracion_segundos / 60)) if duracion_segundos else 0
+        ppm = (palabras / (duracion_segundos / 60)) if duracion_segundos > 0 else 0
 
         return {
             "precision_global": precision,
@@ -168,17 +219,62 @@ class ServicioAnalisisLectura:
             "tokens_leidos": leido_tokens,
         }
 
-    # ================= FEEDBACK =================
+    # ================= FEEDBACK SÚPER MOTIVADOR PARA NIÑOS =================
     def _generar_feedback(self, analisis: Dict) -> str:
+        """
+        Genera feedback extremadamente motivador y amigable para niños de 7-10 años.
+        Usa un lenguaje muy positivo, inclusivo y alentador.
+        """
         p = analisis.get("precision_global", 0)
+        errores = analisis.get("errores_detectados", [])
+        num_errores = len([e for e in errores if e.get("tipo_error") != "puntuacion"])
 
-        if p >= 95:
-            return "¡Excelente! Leíste muy bien 🎉"
-        if p >= 85:
-            return "¡Muy bien! Cada vez lees mejor 👏"
-        if p >= 70:
-            return "Buen intento, vamos a practicar un poco más 💪"
-        return "Lo hiciste con valentía. Practicando mejorarás 🌟"
+        # Feedback súper positivo y motivador - ajustado para niños
+        if p >= 90:
+            mensajes = [
+                "¡Increíble! ¡Leíste súper bien! 🌟 Eres un campeón de la lectura.",
+                "¡Guau! ¡Qué maravilla! 🎉 Leíste casi perfecto. ¡Estoy muy orgulloso!",
+                "¡Fantástico trabajo! ✨ ¡Lees increíble! ¡Eres una estrella! ⭐",
+                "¡Excelente! 🏆 ¡Tu lectura fue hermosa! ¡Sigue brillando así!",
+            ]
+        elif p >= 75:
+            mensajes = [
+                "¡Muy bien! 👏 ¡Leíste genial! Cada día mejoras más. ¡Sigue así!",
+                "¡Genial! 🎯 ¡Qué bien lo hiciste! Tu esfuerzo se nota muchísimo.",
+                "¡Súper! 🌈 ¡Me encantó cómo leíste! Estás mejorando un montón.",
+                "¡Bien hecho! ⭐ ¡Qué lectura tan linda! Cada vez lees con más confianza.",
+            ]
+        elif p >= 60:
+            mensajes = [
+                "¡Buen trabajo! 💪 ¡Lo estás haciendo muy bien! Sigamos practicando juntos.",
+                "¡Qué bien! 🎈 ¡Ya casi lo tienes! Con un poquito más lo harás perfecto.",
+                "¡Vas súper bien! 🚀 ¡Cada intento es una victoria! ¡No te rindas!",
+                "¡Bien! 🌟 ¡Me gusta cómo te esfuerzas! Sigamos practicando.",
+            ]
+        else:
+            mensajes = [
+                "¡Qué valiente eres! 💙 ¡Leíste con mucho valor! Vamos paso a paso, sin prisa.",
+                "¡Lo estás intentando! 🌻 ¡Eso es lo más importante! Cada día aprendemos más.",
+                "¡Bien hecho por intentarlo! 🎨 ¡Aprender es un viaje! Sigamos juntos.",
+                "¡Sigue adelante! 🌈 ¡Cada lectura te hace más fuerte! ¡Tú puedes!",
+            ]
+
+        # Seleccionar mensaje basado en la precisión
+        import random
+        mensaje_base = random.choice(mensajes)
+
+        # Agregar consejos específicos SOLO si tiene varios errores
+        if num_errores >= 5:
+            consejos = [
+                " 💡 Consejito: Lee despacito, palabra por palabra. ¡No hay apuro!",
+                " 💡 Consejito: Sigue las palabras con tu dedito mientras lees.",
+                " 💡 Consejito: Respira hondo y lee con calma. ¡Lo estás haciendo genial!",
+            ]
+            mensaje_base += random.choice(consejos)
+        elif num_errores >= 3:
+            mensaje_base += " 💡 ¡Casi lo tienes! Practica las palabras difíciles en voz alta."
+
+        return mensaje_base
 
     # ================= FLUJO PRINCIPAL =================
     def analizar_lectura(
@@ -253,35 +349,23 @@ class ServicioAnalisisLectura:
     ):
         """
         Guarda DetalleEvaluacion y ErrorPronunciacion en la BD.
-
-        Esta función persiste:
-        - Un DetalleEvaluacion por cada error detectado (palabra con problema)
-        - Un ErrorPronunciacion por cada error, asociado a su detalle
-
-        Args:
-            db: Sesión de base de datos
-            evaluacion_id: ID de la evaluación recién creada
-            tokens_leidos: Lista de tokens que el estudiante leyó
-            errores_detectados: Lista de errores detectados por el análisis
         """
         if not errores_detectados:
             logger.info(
-                f"📊 No hay errores que guardar para evaluación {evaluacion_id}"
+                f"📊 ¡Perfecto! No hay errores para evaluación {evaluacion_id}"
             )
             return
 
         total_detalles = 0
         total_errores = 0
 
-        # Para cada error, crear un DetalleEvaluacion y un ErrorPronunciacion
         for error in errores_detectados:
             palabra_original = error.get("palabra_original")
             palabra_leida = error.get("palabra_leida")
             posicion = error.get("posicion", 0)
             tipo_error = error.get("tipo_error", "otro")
-            severidad = error.get("severidad", 2)
+            severidad = error.get("severidad", 1)  # Severidad baja por defecto
 
-            # Calcular precisión de la palabra (0 si hay error)
             if palabra_original and palabra_leida:
                 precision_palabra = self._similitud_palabra(
                     palabra_original, palabra_leida
@@ -289,47 +373,56 @@ class ServicioAnalisisLectura:
             else:
                 precision_palabra = 0.0
 
-            # Crear DetalleEvaluacion para esta palabra
+            # Mensajes super amigables para niños
+            if tipo_error == "omision":
+                mensaje = f"Te saltaste '{palabra_original}'. ¡No pasa nada! Lee despacito y verás todas las palabras. 💙"
+            elif tipo_error == "sustitucion":
+                mensaje = f"Dijiste '{palabra_leida}' pero es '{palabra_original}'. ¡Casi la tienes! Sigue intentando. 🌟"
+            elif tipo_error == "insercion":
+                mensaje = f"Agregaste una palabra de más. ¡Lee siguiendo con tu dedito y verás! 👆"
+            else:
+                mensaje = f"Pequeño errorito en '{palabra_original}'. ¡No te preocupes! Practica esta palabra. 💪"
+
             detalle = DetalleEvaluacion(
                 evaluacion_id=evaluacion_id,
                 palabra=palabra_original or palabra_leida or "?",
                 posicion_en_texto=posicion,
                 precision_pronunciacion=precision_palabra,
-                retroalimentacion_palabra=(
-                    f"Error de {tipo_error}: "
-                    f"esperado '{palabra_original}', "
-                    f"leído '{palabra_leida}'"
-                ),
+                retroalimentacion_palabra=mensaje,
                 tipo_tokenizacion="word"
             )
 
             db.add(detalle)
-            db.flush()  # Obtener el ID del detalle
+            db.flush()
             total_detalles += 1
 
-            # Crear ErrorPronunciacion asociado a este detalle
+            # Sugerencias muy motivadoras
+            if tipo_error == "omision":
+                sugerencia = f"¡Lee despacito y marca '{palabra_original}' con tu dedito! Así no te la saltarás. 💪"
+            elif tipo_error == "sustitucion":
+                sugerencia = f"Di '{palabra_original}' varias veces en voz alta. ¡Repite conmigo! ⭐"
+            elif tipo_error == "insercion":
+                sugerencia = "Sigue las palabras del texto con tu dedo. ¡Eso te ayudará muchísimo! 👆"
+            else:
+                sugerencia = f"Escucha cómo suena '{palabra_original}' y repítelo despacito. 🎧"
+
             error_pronunciacion = ErrorPronunciacion(
                 detalle_evaluacion_id=detalle.id,
                 tipo_error=tipo_error,
                 palabra_original=palabra_original,
                 palabra_detectada=palabra_leida,
                 severidad=severidad,
-                sugerencia_correccion=(
-                    f"Practica pronunciar la palabra '{palabra_original}' "
-                    f"correctamente. Escucha el audio de referencia."
-                )
+                sugerencia_correccion=sugerencia
             )
 
             db.add(error_pronunciacion)
             total_errores += 1
 
-        # Commit de todos los detalles y errores
         db.commit()
 
         logger.info(
-            f"💾 Guardados {total_detalles} detalles de evaluación y "
-            f"{total_errores} errores de pronunciación para "
-            f"evaluación {evaluacion_id}"
+            f"💾 Guardados {total_detalles} detalles y {total_errores} errores "
+            f"para evaluación {evaluacion_id}"
         )
 
     # ================= PRÁCTICA DE EJERCICIOS =================
@@ -340,7 +433,7 @@ class ServicioAnalisisLectura:
     ) -> Dict:
         """
         Analiza un ejercicio de práctica específico.
-        No guarda en BD, solo retorna el análisis.
+        Muy tolerante para niños de 7-10 años.
         """
         logger.info(f"🎯 Analizando práctica de ejercicio | audio={audio_path}")
 
