@@ -2,7 +2,7 @@
 
 from typing import Optional, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ActividadLecturaBase(BaseModel):
@@ -17,6 +17,36 @@ class ActividadLecturaBase(BaseModel):
     dificultad: str = Field(default="media", description="Nivel de dificultad: facil, media, dificil")
     origen: str = Field(default="ia", description="Origen de la actividad: ia, docente, sistema")
     activo: bool = Field(default=True, description="Si la actividad está activa")
+
+    @field_validator("tipo")
+    @classmethod
+    def _validar_tipo(cls, v: str):
+        from app.validaciones.regex import validar_alfanum_espacio
+        return validar_alfanum_espacio(v, min_len=2)
+
+    @field_validator("enunciado", "respuesta_correcta", "explicacion")
+    @classmethod
+    def _validar_textos(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_texto_libre
+        return validar_texto_libre(v, max_len=2000)
+
+    @field_validator("dificultad")
+    @classmethod
+    def _validar_dificultad(cls, v: str):
+        v = (v or "").strip().lower()
+        if v not in {"facil", "media", "dificil"}:
+            raise ValueError("dificultad inválida: facil, media o dificil")
+        return v
+
+    @field_validator("origen")
+    @classmethod
+    def _validar_origen(cls, v: str):
+        v = (v or "").strip().lower()
+        if v not in {"ia", "docente", "sistema"}:
+            raise ValueError("origen inválido: ia, docente o sistema")
+        return v
 
 
 class ActividadLecturaCreate(ActividadLecturaBase):
@@ -36,6 +66,42 @@ class ActividadLecturaUpdate(BaseModel):
     dificultad: Optional[str] = None
     origen: Optional[str] = None
     activo: Optional[bool] = None
+
+    @field_validator("tipo")
+    @classmethod
+    def _validar_tipo_up(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_alfanum_espacio
+        return validar_alfanum_espacio(v, min_len=2)
+
+    @field_validator("enunciado", "respuesta_correcta", "explicacion")
+    @classmethod
+    def _validar_textos_up(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_texto_libre
+        return validar_texto_libre(v, max_len=2000)
+
+    @field_validator("dificultad")
+    @classmethod
+    def _validar_dificultad_up(cls, v: str | None):
+        if v is None:
+            return v
+        v = (v or "").strip().lower()
+        if v not in {"facil", "media", "dificil"}:
+            raise ValueError("dificultad inválida: facil, media o dificil")
+        return v
+
+    @field_validator("origen")
+    @classmethod
+    def _validar_origen_up(cls, v: str | None):
+        if v is None:
+            return v
+        v = (v or "").strip().lower()
+        if v not in {"ia", "docente", "sistema"}:
+            raise ValueError("origen inválido: ia, docente o sistema")
+        return v
 
 
 class ActividadLecturaResponse(ActividadLecturaBase):

@@ -5,8 +5,8 @@ from datetime import datetime
 import json
 
 from app.config import get_db
-from app.servicios.seguridad import obtener_usuario_actual
-from app.modelos import Usuario, Estudiante, Padre, EjercicioPractica, EvaluacionLectura
+from app.servicios.seguridad import obtener_usuario_actual, obtener_docente_actual
+from app.modelos import Usuario, Estudiante, Padre, Docente, EjercicioPractica, EvaluacionLectura, ContenidoLectura
 
 router = APIRouter(
     prefix="/historial/practicas",
@@ -58,6 +58,18 @@ def obtener_mis_practicas(
         # Calcular puntuación basada en completado
         puntuacion = 100 if ej.completado else 50
         
+        # Datos de lectura (si existe evaluacion)
+        lectura_id = None
+        lectura_titulo = None
+        try:
+            if ej.evaluacion:
+                lectura_id = ej.evaluacion.contenido_id
+                if lectura_id:
+                    cont = db.query(ContenidoLectura).filter(ContenidoLectura.id == lectura_id).first()
+                    lectura_titulo = cont.titulo if cont else None
+        except Exception:
+            pass
+
         historial.append({
             "id": ej.id,
             "estudiante_id": ej.estudiante_id,
@@ -69,7 +81,13 @@ def obtener_mis_practicas(
             "tipo_ejercicio": ej.tipo_ejercicio or "pronunciacion",
             "completado": ej.completado,
             "intentos": ej.intentos or 0,
-            "dificultad": ej.dificultad or 2
+            "dificultad": ej.dificultad or 2,
+            # ✅ Detalle para historial (lo que el usuario pide ver)
+            "palabras_objetivo": ej.palabras_objetivo or [],
+            "texto_practica": ej.texto_practica or "",
+            "evaluacion_id": ej.evaluacion_id,
+            "lectura_id": lectura_id,
+            "lectura_titulo": lectura_titulo,
         })
 
     return historial
@@ -132,6 +150,17 @@ def obtener_practicas_hijo(
        
         puntuacion = 100 if ej.completado else 50
         
+        lectura_id = None
+        lectura_titulo = None
+        try:
+            if ej.evaluacion:
+                lectura_id = ej.evaluacion.contenido_id
+                if lectura_id:
+                    cont = db.query(ContenidoLectura).filter(ContenidoLectura.id == lectura_id).first()
+                    lectura_titulo = cont.titulo if cont else None
+        except Exception:
+            pass
+
         historial.append({
             "id": ej.id,
             "estudiante_id": ej.estudiante_id,
@@ -143,7 +172,81 @@ def obtener_practicas_hijo(
             "tipo_ejercicio": ej.tipo_ejercicio or "pronunciacion",
             "completado": ej.completado,
             "intentos": ej.intentos or 0,
-            "dificultad": ej.dificultad or 2
+            "dificultad": ej.dificultad or 2,
+            "palabras_objetivo": ej.palabras_objetivo or [],
+            "texto_practica": ej.texto_practica or "",
+            "evaluacion_id": ej.evaluacion_id,
+            "lectura_id": lectura_id,
+            "lectura_titulo": lectura_titulo,
+        })
+
+    return historial
+
+
+@router.get("/docente/{estudiante_id}")
+@router.get("/estudiante/{estudiante_id}")
+def obtener_practicas_estudiante_docente(
+    estudiante_id: int,
+    db: Session = Depends(get_db),
+    docente: Docente = Depends(obtener_docente_actual),
+):
+    """Historial de prácticas (zona práctica) para vista docente."""
+
+    estudiante = (
+        db.query(Estudiante)
+        .filter(
+            Estudiante.id == estudiante_id,
+            Estudiante.docente_id == docente.id,
+        )
+        .first()
+    )
+
+    if not estudiante:
+        raise HTTPException(403, "No autorizado")
+
+    ejercicios = (
+        db.query(EjercicioPractica)
+        .filter(EjercicioPractica.estudiante_id == estudiante.id)
+        .order_by(EjercicioPractica.fecha_creacion.desc())
+        .all()
+    )
+
+    historial = []
+    for ej in ejercicios:
+        num_errores = 0
+        if ej.palabras_objetivo:
+            num_errores = len(ej.palabras_objetivo) if isinstance(ej.palabras_objetivo, list) else 0
+
+        puntuacion = 100 if ej.completado else 50
+
+        lectura_id = None
+        lectura_titulo = None
+        try:
+            if ej.evaluacion:
+                lectura_id = ej.evaluacion.contenido_id
+                if lectura_id:
+                    cont = db.query(ContenidoLectura).filter(ContenidoLectura.id == lectura_id).first()
+                    lectura_titulo = cont.titulo if cont else None
+        except Exception:
+            pass
+
+        historial.append({
+            "id": ej.id,
+            "estudiante_id": ej.estudiante_id,
+            "fecha": ej.fecha_creacion.isoformat() if ej.fecha_creacion else datetime.now().isoformat(),
+            "puntuacion": puntuacion,
+            "errores_detectados": num_errores,
+            "errores_corregidos": 1 if ej.completado else 0,
+            "tiempo_practica": ej.intentos * 60 if ej.intentos else 0,
+            "tipo_ejercicio": ej.tipo_ejercicio or "pronunciacion",
+            "completado": ej.completado,
+            "intentos": ej.intentos or 0,
+            "dificultad": ej.dificultad or 2,
+            "palabras_objetivo": ej.palabras_objetivo or [],
+            "texto_practica": ej.texto_practica or "",
+            "evaluacion_id": ej.evaluacion_id,
+            "lectura_id": lectura_id,
+            "lectura_titulo": lectura_titulo,
         })
 
     return historial

@@ -24,6 +24,23 @@ class PadreUpdate(BaseModel):
     notificaciones_activas: Optional[bool] = None
     activo: Optional[bool] = None
 
+    @field_validator("telefono_contacto")
+    @classmethod
+    def _validar_telefono(cls, v: str | None):
+        if v is None or v == "":
+            return v
+        from app.validaciones.regex import validar_solo_numeros
+        # Ecuador suele ser 10 dígitos, pero dejamos 7-15 por si usan código país
+        return validar_solo_numeros(v, min_len=7, max_len=15)
+
+    @field_validator("parentesco")
+    @classmethod
+    def _validar_parentesco(cls, v: str | None):
+        if v is None or v == "":
+            return v
+        from app.validaciones.regex import validar_solo_letras
+        return validar_solo_letras(v, min_len=3)
+
 
 class PadreResponse(PadreBase):
     id: int
@@ -63,7 +80,9 @@ class VincularHijoRequest(BaseModel):
 
     @field_validator("nombre", "apellido")
     def limpiar_cadenas(cls, v):
-        return v.strip().title()
+        from app.validaciones.regex import validar_solo_letras
+        v = validar_solo_letras(v, min_len=2)
+        return v.title()
 
     @field_validator("fecha_nacimiento", mode="before")
     def normalizar_fecha(cls, v):

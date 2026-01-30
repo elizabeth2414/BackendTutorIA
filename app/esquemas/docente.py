@@ -1,6 +1,6 @@
 from __future__ import annotations  
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from datetime import date, datetime
 
@@ -35,6 +35,23 @@ class DocenteUpdate(BaseModel):
     fecha_contratacion: Optional[date] = None
     activo: Optional[bool] = None
 
+    @field_validator("nombre", "apellido")
+    @classmethod
+    def _validar_nombre_apellido(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_solo_letras
+        return validar_solo_letras(v, min_len=2)
+
+    @field_validator("especialidad", "grado_academico", "institucion")
+    @classmethod
+    def _validar_texto_docente(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_alfanum_espacio
+        # texto corto (sin símbolos)
+        return validar_alfanum_espacio(v, min_len=2)
+
 
 class DocenteResponse(DocenteBase):
     id: int
@@ -58,6 +75,20 @@ class DocenteCreateAdmin(DocenteBase):
     password: Optional[str] = None  # ✅ Ahora es opcional
     nombre: str
     apellido: str
+
+    @field_validator("nombre", "apellido")
+    @classmethod
+    def _validar_nombre_apellido_admin(cls, v: str):
+        from app.validaciones.regex import validar_solo_letras
+        return validar_solo_letras(v, min_len=2)
+
+    @field_validator("especialidad", "grado_academico", "institucion")
+    @classmethod
+    def _validar_texto_docente_admin(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_alfanum_espacio
+        return validar_alfanum_espacio(v, min_len=2)
 
 
 class DocenteAdminResponse(DocenteBase):

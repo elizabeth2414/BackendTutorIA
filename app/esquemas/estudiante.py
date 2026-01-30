@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any
 from datetime import date, datetime
 
@@ -10,11 +10,25 @@ class EstudianteBase(BaseModel):
     nombre: str
     apellido: str
     fecha_nacimiento: date
-    nivel_educativo: int
+    nivel_educativo: int = Field(..., ge=1, le=12)
     necesidades_especiales: Optional[str] = None
     avatar_url: Optional[str] = None
     configuracion: Optional[Dict[str, Any]] = None
     transferible: bool = True
+
+    @field_validator("nombre", "apellido")
+    @classmethod
+    def _validar_nombre_apellido_base(cls, v: str):
+        from app.validaciones.regex import validar_solo_letras
+        return validar_solo_letras(v, min_len=2)
+
+    @field_validator("necesidades_especiales")
+    @classmethod
+    def _validar_necesidades_base(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_texto_libre
+        return validar_texto_libre(v, max_len=200)
 
 
 class EstudianteCreate(EstudianteBase):
@@ -30,6 +44,23 @@ class EstudianteUpdate(BaseModel):
     configuracion: Optional[Dict[str, Any]] = None
     activo: Optional[bool] = None
     transferible: Optional[bool] = None
+
+    @field_validator("nivel_educativo")
+    @classmethod
+    def _validar_nivel_update(cls, v: int | None):
+        if v is None:
+            return v
+        if v < 1 or v > 12:
+            raise ValueError("Nivel educativo inválido")
+        return v
+
+    @field_validator("necesidades_especiales")
+    @classmethod
+    def _validar_necesidades_update(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_texto_libre
+        return validar_texto_libre(v, max_len=200)
 
 
 class EstudianteResponse(EstudianteBase):
@@ -70,9 +101,23 @@ class EstudianteCreateDocente(BaseModel):
     nombre: str
     apellido: str
     fecha_nacimiento: date
-    nivel_educativo: int
+    nivel_educativo: int = Field(..., ge=1, le=12)
     necesidades_especiales: Optional[str] = None
-    curso_id: int
+    curso_id: int = Field(..., ge=1)
+
+    @field_validator("nombre", "apellido")
+    @classmethod
+    def _validar_nombres_create_docente(cls, v: str):
+        from app.validaciones.regex import validar_solo_letras
+        return validar_solo_letras(v, min_len=2)
+
+    @field_validator("necesidades_especiales")
+    @classmethod
+    def _validar_necesidades_create_docente(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_texto_libre
+        return validar_texto_libre(v, max_len=200)
 
 class EstudianteUpdateDocente(BaseModel):
     nombre: Optional[str] = None
@@ -80,4 +125,21 @@ class EstudianteUpdateDocente(BaseModel):
     fecha_nacimiento: Optional[date] = None
     nivel_educativo: Optional[int] = None
     necesidades_especiales: Optional[str] = None
-    curso_id: Optional[int] = None
+    curso_id: Optional[int] = Field(None, ge=1)
+
+    @field_validator("nombre", "apellido")
+    @classmethod
+    def _validar_nombres(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_solo_letras
+        return validar_solo_letras(v, min_len=2)
+
+    @field_validator("necesidades_especiales")
+    @classmethod
+    def _validar_necesidades(cls, v: str | None):
+        if v is None:
+            return v
+        from app.validaciones.regex import validar_texto_libre
+        # texto corto, sin símbolos peligrosos
+        return validar_texto_libre(v, max_len=200)

@@ -189,55 +189,55 @@ class ManagerAprendizajeIA:
 
         if mejoro and precision >= 85:
             return (
-                f"¡Felicidades, campeón! 🎊 ¡Tu lectura fue hermosa con {precision:.0f}%! "
-                f"¡Casi no tuviste errores! ¡Eres un súper lector! Sigue así. 🏆"
+                f"¡Felicidades!  ¡Tu lectura fue hermosa con {precision:.0f}%! "
+                f"¡Casi no tuviste errores! ¡Eres un súper lector! Sigue así. "
             )
 
         if mejoro:
             return (
-                f"¡Muy bien! 🌟 ¡Lograste {precision:.0f}%! "
-                f"¡Has mejorado muchísimo! ¡Me encanta tu esfuerzo! 💪"
+                f"¡Muy bien!  ¡Lograste {precision:.0f}%! "
+                f"¡Has mejorado muchísimo! ¡Me encanta tu esfuerzo! "
             )
 
         # Mensaje cuando NO mejoró (MUY positivo y motivador)
         if total == 0:
-            return "¡Perfecto! ¡Leíste sin errores! ¡Eres increíble! 🌟"
+            return "¡Perfecto! ¡Leíste sin errores! ¡Eres increíble! "
 
         if total == 1:
             return (
                 f"¡Súper bien! Solo tuviste 1 pequeñito error. "
-                f"¡Casi lo tienes perfecto! Vamos a practicar esa palabrita juntos. 💙"
+                f"¡Casi lo tienes perfecto! Vamos a practicar esa palabrita juntos. "
             )
 
         if total <= 3:
             return (
                 f"¡Buen trabajo! Tuviste solo {total} pequeños errores. "
-                f"¡Lo estás haciendo muy bien! Vamos a mejorar juntos. 🌈"
+                f"¡Lo estás haciendo muy bien! Vamos a mejorar juntos. "
             )
 
-        partes = [f"Tuviste {total} pequeños errores, pero ¡lo intentaste con mucho valor! 💪"]
+        partes = [f"Tuviste {total} pequeños errores, pero ¡lo intentaste y eso es lo que te ayudara a mejorar! "]
 
         if omisiones > 0:
             partes.append(
                 f"Te saltaste {omisiones} palabra{'s' if omisiones > 1 else ''}. "
-                f"¡Lee despacito con tu dedito! 📖"
+                f"¡Lee despacito con tu dedito! "
             )
 
         if sustituciones > 0:
             partes.append(
                 f"Leíste {sustituciones} palabra{'s' if sustituciones > 1 else ''} diferente. "
-                f"¡Ya casi las tienes! Practica diciéndolas. 💪"
+                f"¡Ya casi las tienes! Practica diciéndolas. "
             )
 
         if inserciones > 0:
             partes.append(
                 f"Agregaste {inserciones} palabra{'s' if inserciones > 1 else ''} de más. "
-                f"¡Sigue el texto con tu dedito! 👆"
+                f"¡Sigue el texto con tu dedito! "
             )
 
         partes.append(
-            "\n💡 Consejito de tu amigo: Lee despacito, palabra por palabra. "
-            "¡No hay prisa! ¡Lo estás haciendo genial! 🌈"
+            "\n Consejito de tu amigo: Lee despacito, palabra por palabra. "
+            "¡No hay prisa! ¡Lo estás haciendo genial! "
         )
 
         return " ".join(partes)
@@ -249,14 +249,14 @@ class ManagerAprendizajeIA:
         palabra = error.get("palabra_original", "")
 
         if tipo == "omision":
-            return f"Lee despacito y marca '{palabra}' con tu dedito. ¡Así no te la saltarás! 💪"
+            return f"Lee despacito y marca '{palabra}' con tu dedito. ¡Así no te la saltarás! "
         elif tipo == "sustitucion":
             leida = error.get("palabra_leida", "")
-            return f"Dijiste '{leida}' pero es '{palabra}'. ¡Repite conmigo: '{palabra}'! 🎯"
+            return f"Dijiste '{leida}' pero es '{palabra}'. ¡Repite conmigo: '{palabra}'! "
         elif tipo == "insercion":
-            return "Lee siguiendo el texto con tu dedito. ¡Eso te ayudará un montón! 👆"
+            return "Lee siguiendo el texto con tu dedito. ¡Eso te ayudará un montón! "
         else:
-            return "Practica esta palabrita varias veces. ¡Lo harás genial! 🌟"
+            return "Practica esta palabrita varias veces. ¡Lo harás genial! "
 
     def _calcular_nivel_logro(self, precision: float, mejoro: bool) -> str:
         """Calcula el nivel de logro - más generoso para niños."""

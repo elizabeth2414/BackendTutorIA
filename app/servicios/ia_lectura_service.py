@@ -223,31 +223,31 @@ class ServicioAnalisisLectura:
 
         if p >= 90:
             mensajes = [
-                "¡Increíble! ¡Leíste súper bien! 🌟 Eres un campeón de la lectura.",
-                "¡Guau! ¡Qué maravilla! 🎉 Leíste casi perfecto. ¡Estoy muy orgulloso!",
-                "¡Fantástico trabajo! ✨ ¡Lees increíble! ¡Eres una estrella! ⭐",
-                "¡Excelente! 🏆 ¡Tu lectura fue hermosa! ¡Sigue brillando así!",
+                "¡Increíble! ¡Leíste súper bien!.",
+                "¡Guau! ¡Qué maravilla!  Leíste casi perfecto. ¡Estoy muy orgulloso!",
+                "¡Fantástico trabajo!  ¡Lees increíble! ¡Eres una estrella! ",
+                "¡Excelente!  ¡Tu lectura fue hermosa! ¡Sigue brillando así!",
             ]
         elif p >= 75:
             mensajes = [
-                "¡Muy bien! 👏 ¡Leíste genial! Cada día mejoras más. ¡Sigue así!",
-                "¡Genial! 🎯 ¡Qué bien lo hiciste! Tu esfuerzo se nota muchísimo.",
-                "¡Súper! 🌈 ¡Me encantó cómo leíste! Estás mejorando un montón.",
-                "¡Bien hecho! ⭐ ¡Qué lectura tan linda! Cada vez lees con más confianza.",
+                "¡Muy bien!  ¡Leíste genial! Cada día mejoras más. ¡Sigue así!",
+                "¡Genial!  ¡Qué bien lo hiciste! Tu esfuerzo se nota muchísimo.",
+                "¡Súper!  ¡Me encantó cómo leíste! Estás mejorando un montón.",
+                "¡Bien hecho!  ¡Qué lectura tan linda! Cada vez lees con más confianza.",
             ]
         elif p >= 60:
             mensajes = [
-                "¡Buen trabajo! 💪 ¡Lo estás haciendo muy bien! Sigamos practicando juntos.",
-                "¡Qué bien! 🎈 ¡Ya casi lo tienes! Con un poquito más lo harás perfecto.",
-                "¡Vas súper bien! 🚀 ¡Cada intento es una victoria! ¡No te rindas!",
-                "¡Bien! 🌟 ¡Me gusta cómo te esfuerzas! Sigamos practicando.",
+                "¡Buen trabajo!  ¡Lo estás haciendo muy bien! Sigamos practicando juntos.",
+                "¡Qué bien!  ¡Ya casi lo tienes! Con un poquito más lo harás perfecto.",
+                "¡Vas súper bien!  ¡Cada intento es una victoria! ¡No te rindas!",
+                "¡Bien!  ¡Me gusta cómo te esfuerzas! Sigamos practicando.",
             ]
         else:
             mensajes = [
-                "¡Qué valiente eres! 💙 ¡Leíste con mucho valor! Vamos paso a paso, sin prisa.",
-                "¡Lo estás intentando! 🌻 ¡Eso es lo más importante! Cada día aprendemos más.",
-                "¡Bien hecho por intentarlo! 🎨 ¡Aprender es un viaje! Sigamos juntos.",
-                "¡Sigue adelante! 🌈 ¡Cada lectura te hace más fuerte! ¡Tú puedes!",
+                "¡Qué bien lo hiciste! Vamos paso a paso, sin prisa.",
+                "¡Lo estás intentando!  ¡Eso es lo más importante! Cada día aprendemos más.",
+                "¡Bien hecho por intentarlo!  ¡Aprender es un viaje! Sigamos juntos.",
+                "¡Sigue adelante!  ¡Cada lectura te hace más fuerte! ¡Tú puedes!",
             ]
 
         import random
@@ -255,13 +255,13 @@ class ServicioAnalisisLectura:
 
         if num_errores >= 5:
             consejos = [
-                " 💡 Consejito: Lee despacito, palabra por palabra. ¡No hay apuro!",
-                " 💡 Consejito: Sigue las palabras con tu dedito mientras lees.",
-                " 💡 Consejito: Respira hondo y lee con calma. ¡Lo estás haciendo genial!",
+                "  Un pequeño consejo: Lee despacito, palabra por palabra. ¡No hay apuro!",
+                "  Un pequeño consejo: Sigue las palabras con tu dedito mientras lees.",
+                "  Un pequeño consejo: Respira hondo y lee con calma. ¡Lo estás haciendo genial!",
             ]
             mensaje_base += random.choice(consejos)
         elif num_errores >= 3:
-            mensaje_base += " 💡 ¡Casi lo tienes! Practica las palabras difíciles en voz alta."
+            mensaje_base += "  ¡Casi lo tienes! Practica las palabras difíciles en voz alta."
 
         return mensaje_base
 
@@ -354,13 +354,13 @@ class ServicioAnalisisLectura:
                 precision_palabra = 0.0
 
             if tipo_error == "omision":
-                mensaje = f"Te saltaste '{palabra_original}'. ¡No pasa nada! Lee despacito y verás todas las palabras. 💙"
+                mensaje = f"Te saltaste '{palabra_original}'. ¡No pasa nada! Lee despacito y verás todas las palabras. "
             elif tipo_error == "sustitucion":
-                mensaje = f"Dijiste '{palabra_leida}' pero es '{palabra_original}'. ¡Casi la tienes! Sigue intentando. 🌟"
+                mensaje = f"Dijiste '{palabra_leida}' pero es '{palabra_original}'. ¡Casi la tienes! Sigue intentando. "
             elif tipo_error == "insercion":
-                mensaje = f"Agregaste una palabra de más. ¡Lee siguiendo con tu dedito y verás! 👆"
+                mensaje = f"Agregaste una palabra de más. ¡Lee siguiendo con tu dedito y verás! "
             else:
-                mensaje = f"Pequeño errorito en '{palabra_original}'. ¡No te preocupes! Practica esta palabra. 💪"
+                mensaje = f"Pequeño errorito en '{palabra_original}'. ¡No te preocupes! Practica esta palabra. "
 
             detalle = DetalleEvaluacion(
                 evaluacion_id=evaluacion_id,
@@ -376,13 +376,13 @@ class ServicioAnalisisLectura:
             total_detalles += 1
 
             if tipo_error == "omision":
-                sugerencia = f"¡Lee despacito y marca '{palabra_original}' con tu dedito! Así no te la saltarás. 💪"
+                sugerencia = f"¡Lee despacito y marca '{palabra_original}' con tu dedito! Así no te la saltarás. "
             elif tipo_error == "sustitucion":
-                sugerencia = f"Di '{palabra_original}' varias veces en voz alta. ¡Repite conmigo! ⭐"
+                sugerencia = f"Di '{palabra_original}' varias veces en voz alta. ¡Repite conmigo! "
             elif tipo_error == "insercion":
-                sugerencia = "Sigue las palabras del texto con tu dedo. ¡Eso te ayudará muchísimo! 👆"
+                sugerencia = "Sigue las palabras del texto con tu dedo. ¡Eso te ayudará muchísimo! "
             else:
-                sugerencia = f"Escucha cómo suena '{palabra_original}' y repítelo despacito. 🎧"
+                sugerencia = f"Escucha cómo suena '{palabra_original}' y repítelo despacito. "
 
             error_pronunciacion = ErrorPronunciacion(
                 detalle_evaluacion_id=detalle.id,
