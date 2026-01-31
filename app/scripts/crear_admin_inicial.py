@@ -13,7 +13,7 @@ def crear_admin_inicial():
     nombre_admin = "Admin"
     apellido_admin = "Principal"
 
-    print("🔍 Buscando si ya existe el admin...")
+    print("Buscando si ya existe el admin...")
 
     existente = (
         db.query(Usuario)
@@ -22,7 +22,7 @@ def crear_admin_inicial():
     )
 
     if existente:
-        print(f"✅ Ya existe un usuario con email {email_admin} (id={existente.id})")
+        print(f"Ya existe un usuario con email {email_admin} (id={existente.id})")
 
         # Verificamos si ya tiene rol admin
         rol_admin = (
@@ -34,11 +34,11 @@ def crear_admin_inicial():
             .first()
         )
         if rol_admin:
-            print("✅ Ese usuario ya tiene rol 'admin'. No hay nada que hacer.")
+            print("Ese usuario ya tiene rol 'admin'. No hay nada que hacer.")
             db.close()
             return
         else:
-            print("⚠️ Usuario existe pero sin rol 'admin'. Asignando rol...")
+            print("Usuario existe pero sin rol 'admin'. Asignando rol...")
 
             nuevo_rol = UsuarioRol(
                 usuario_id=existente.id,
@@ -46,12 +46,12 @@ def crear_admin_inicial():
             )
             db.add(nuevo_rol)
             db.commit()
-            print("✅ Rol 'admin' asignado correctamente.")
+            print("Rol 'admin' asignado correctamente.")
             db.close()
             return
 
     # Si NO existe, lo creamos
-    print("🆕 Creando usuario admin...")
+    print("Creando usuario admin...")
 
     password_hash = obtener_password_hash(password_plano)
 
@@ -65,7 +65,7 @@ def crear_admin_inicial():
     db.commit()
     db.refresh(admin)
 
-    print(f"✅ Usuario admin creado con id={admin.id}")
+    print(f"Usuario admin creado con id={admin.id}")
 
     # Asignar rol admin
     rol = UsuarioRol(
@@ -75,8 +75,8 @@ def crear_admin_inicial():
     db.add(rol)
     db.commit()
 
-    print("✅ Rol 'admin' asignado")
-    print("🎉 Admin listo para usar:")
+    print("Rol 'admin' asignado")
+    print("Admin listo para usar:")
     print(f"   Email: {email_admin}")
     print(f"   Password: {password_plano}")
 

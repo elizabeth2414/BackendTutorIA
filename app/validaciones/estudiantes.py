@@ -6,13 +6,13 @@ def validar_edad_estudiante(fecha_nacimiento: date) -> bool:
     hoy = date.today()
     edad = hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
     
-    if edad < 5:
+    if edad < 7:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El estudiante debe tener al menos 5 años"
+            detail="El estudiante debe tener al menos 7 años"
         )
     
-    if edad > 18:
+    if edad > 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El estudiante no puede tener más de 10 años"
