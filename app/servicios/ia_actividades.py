@@ -11,7 +11,7 @@ from app.logs.logger import logger
 
 MODEL_NAME = "lmqg/mt5-small-esquad-qag"
 
-logger.info(f"🤖 Cargando modelo QAG en español: {MODEL_NAME}")
+logger.info(f"Cargando modelo QAG en español: {MODEL_NAME}")
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForSeq2SeqLM.from_pretrained(
