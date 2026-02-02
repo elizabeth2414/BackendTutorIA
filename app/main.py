@@ -39,6 +39,7 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://192.168.18.188:5173",
+    "https://tutor-ia-frontend-6927.azurewebsites.net",
     "capacitor://localhost",
     "http://localhost:8080",
     "ionic://localhost",
