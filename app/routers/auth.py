@@ -38,7 +38,7 @@ from app.servicios.usuario_builder import build_usuario_response
 
 router = APIRouter(prefix="/auth", tags=["autenticacion"])
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
 
 
