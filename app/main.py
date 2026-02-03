@@ -10,12 +10,9 @@ from app.logs.logger import logger
 from app.config import SessionLocal
 from app.routers import api_router
 
-
 app = FastAPI(
     title="BookiSmartIA - Backend",
-    version="1.0.0",
-    redirect_slashes=False
-)
+    version="1.0.0"
 
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
