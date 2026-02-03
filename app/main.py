@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 import traceback
 
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+
 from app.logs.logger import logger
 from app.config import SessionLocal
 from app.routers import api_router
@@ -11,8 +13,11 @@ from app.routers import api_router
 
 app = FastAPI(
     title="BookiSmartIA - Backend",
-    version="1.0.0"
+    version="1.0.0",
+    redirect_slashes=False
 )
+
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 logger.info("Backend BookiSmartIA iniciado correctamente")
 
