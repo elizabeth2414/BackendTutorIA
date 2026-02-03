@@ -13,6 +13,7 @@ from app.routers import api_router
 app = FastAPI(
     title="BookiSmartIA - Backend",
     version="1.0.0"
+)
 
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
