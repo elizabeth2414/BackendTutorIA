@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 import traceback
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.logs.logger import logger
 from app.config import SessionLocal
