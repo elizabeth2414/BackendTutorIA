@@ -7,7 +7,7 @@ from app.servicios.seguridad import obtener_password_hash
 def crear_admin_inicial():
     db = SessionLocal()
 
-    # crednciales admin aqui
+    
     email_admin = "admin@tutoria.com"
     password_plano = "AdminIA2025@"
     nombre_admin = "Admin"
